@@ -1,0 +1,69 @@
+<!doctype html>
+<!--
+  Canonical source for the captive-portal page. This file is embedded verbatim
+  into the firmware as PORTAL_HTML in src/portal_server.cpp — if you edit the
+  styling or fields here, mirror the change there (or load it from LittleFS).
+  Palette: Duet (light background, dark text, blue accent).
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>X3 OSINT Configuration</title>
+<style>
+  :root{
+    --bg:#F5F5F0; --text:#2C3E50; --accent:#3498DB; --accent-dark:#2980B9;
+    --light:#ECF0F1; --border:#BDC3C7;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);
+       font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:0;padding:16px}
+  .container{max-width:600px;margin:16px auto;background:#fff;padding:24px;
+             border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+  h1{margin:0 0 4px;font-size:1.6rem}
+  p.sub{margin:0 0 20px;color:#7f8c8d}
+  label{display:block;font-weight:600;margin:14px 0 4px;font-size:.95rem}
+  input,select{width:100%;padding:11px;border:1px solid var(--border);
+               border-radius:4px;font-size:1rem;background:#fff;color:var(--text)}
+  .hint{font-size:.8rem;color:#95a5a6;margin-top:4px}
+  button{width:100%;margin-top:22px;padding:14px;background:var(--accent);
+         color:#fff;border:none;border-radius:4px;cursor:pointer;
+         font-weight:700;font-size:1rem}
+  button:hover{background:var(--accent-dark)}
+  .foot{text-align:center;color:#95a5a6;font-size:.75rem;margin-top:16px}
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>&#128269; X3 OSINT Toolkit</h1>
+    <p class="sub">Configure your reconnaissance device</p>
+    <form action="/connect" method="POST">
+      <label>WiFi Network (to connect to)</label>
+      <input type="text" name="ssid" placeholder="HomeWiFi" required
+             autocomplete="off" autocapitalize="none">
+
+      <label>WiFi Password</label>
+      <input type="password" name="pwd" placeholder="password"
+             autocomplete="off">
+
+      <label>Reconnaissance Mode</label>
+      <select name="mode" required>
+        <option value="Passive Scan">Passive Scan (WiFi only)</option>
+        <option value="OSINT Mode" selected>OSINT Mode (WiFi + lookups)</option>
+        <option value="Active Scan">Active Scan (WiFi + BLE*)</option>
+      </select>
+      <div class="hint">*BLE reserved for a future release.</div>
+
+      <label>Data Server URL (optional)</label>
+      <input type="url" name="server_url" placeholder="http://192.168.1.100:5000">
+      <div class="hint">Base URL of your enrichment server (GeoIP, etc.).</div>
+
+      <label>Scan Interval (minutes)</label>
+      <input type="number" name="scan_min" min="1" max="1440" value="5">
+
+      <button type="submit">Save &amp; Start Scanning</button>
+    </form>
+    <div class="foot">X3 OSINT OS</div>
+  </div>
+</body>
+</html>
