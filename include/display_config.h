@@ -8,6 +8,7 @@
 #pragma once
 
 #include <GxEPD2_BW.h>
+#include <GxEPD2_368_X3.h>   // custom SSD1677 792x528 class (lib/GxEPD2_X3)
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
@@ -19,27 +20,22 @@
 //
 //  The Xteink X3 uses an SSD1677 controller driving a 3.68" 792x528 panel
 //  (framebuffer 99x528 bytes = 52,272 bytes; the glass is physically 792x600).
-//  GxEPD2 has NO stock class for 792x528, so a geometrically-correct image
-//  requires a CUSTOM GxEPD2 class based on GxEPD2's SSD1677 driver
-//  (GxEPD2_426_GDEQ0426T82) with WIDTH=792, HEIGHT=528, a 10 MHz SPI limit,
-//  and the X3-specific LUT waveforms.
+//  GxEPD2 has no stock class for 792x528, so this project ships a custom one:
+//  lib/GxEPD2_X3/GxEPD2_368_X3 — a faithful adaptation of GxEPD2's SSD1677
+//  driver (GDEQ0426T82) at 792x528, using the panel's built-in OTP waveforms
+//  (no custom LUT upload needed for full refresh). SPI defaults to 4 MHz mode 0
+//  in GxEPD2, safely under the X3's 10 MHz ceiling.
 //
-//  Until you drop that custom class in, X3_PANEL_CLASS defaults to the stock
-//  SSD1677 4.26" class so the project COMPILES and talks to the correct
-//  controller family — but the image geometry will be wrong (it is 800x480,
-//  not 792x528). Replace it with your custom 792x528 SSD1677 class for a
-//  correct picture, then set X3_PANEL_CLASS to that class name.
-//
-//  References for building the custom driver:
-//    - papyrix-reader/docs/ssd1677-driver.md  (pinout, SPI, LUT overview)
-//    - papyrix-reader/docs/x3-lut-waveforms.md (X3 LUT registers 0x20-0x24)
-//    - CrazyCoder gist 82fec0bbd0e515dcc237d3db7451ec6f (RE analysis)
-//    - ZinggJM/GxEPD2 src for GxEPD2_426_GDEQ0426T82.{h,cpp} (base to copy)
+//  This is written from the confirmed X3 specs but has NOT been validated on
+//  real hardware. If the image is wrong, see the tuning notes at the top of
+//  lib/GxEPD2_X3/GxEPD2_368_X3.h. To fall back to the stock 4.26" SSD1677 class
+//  for bring-up (right controller, wrong 800x480 geometry), set X3_PANEL_CLASS
+//  to GxEPD2_426_GDEQ0426T82 instead.
 //
 //  Layout throughout the firmware uses DISPLAY_WIDTH x DISPLAY_HEIGHT
 //  (792 x 528 from the build flags).
 // ---------------------------------------------------------------------------
-#define X3_PANEL_CLASS GxEPD2_426_GDEQ0426T82
+#define X3_PANEL_CLASS GxEPD2_368_X3
 
 // SPI + control pins for the Xteink X3 (ESP32-C3). Confirmed from the SSD1677
 // driver notes / RE analysis; re-verify if your board revision differs.

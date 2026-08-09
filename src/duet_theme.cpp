@@ -218,6 +218,158 @@ void DuetTheme::paint_(DisplayType& g) {
 }
 
 // ---------------------------------------------------------------------------
+//  Interactive screens
+// ---------------------------------------------------------------------------
+int DuetTheme::rowsPerPage() const {
+  int usable = DISPLAY_HEIGHT - UI_HEADER_H - 34 /*hint bar*/;
+  int r = usable / UI_ROW_H;
+  return r < 1 ? 1 : r;
+}
+
+void DuetTheme::hintBar_(DisplayType& g, int w, int h, const String& hint) {
+  int y = h - 34;
+  g.drawFastHLine(0, y, w, COLOR_INK);
+  textAt_(g, UI_MARGIN, y + 23, FONT_SMALL,
+          fit_(g, FONT_SMALL, hint, w - 2 * UI_MARGIN), COLOR_INK);
+}
+
+void DuetTheme::listRow_(DisplayType& g, int x, int y, int w, int h,
+                         const String& l1, const String& l2, bool selected) {
+  uint16_t bg = selected ? COLOR_INK : COLOR_BG;
+  uint16_t fg = selected ? COLOR_BG : COLOR_INK;
+  g.fillRect(x, y, w, h, bg);
+  if (!selected) g.drawFastHLine(x, y + h - 1, w, COLOR_INK);
+
+  textAt_(g, x + 14, y + 28, FONT_MEDIUM, fit_(g, FONT_MEDIUM, l1, w - 28), fg);
+  if (l2.length())
+    textAt_(g, x + 14, y + 56, FONT_SMALL, fit_(g, FONT_SMALL, l2, w - 28), fg);
+}
+
+void DuetTheme::showResults(const std::vector<ScannedAP>& nets, int selected,
+                            int scrollTop, const String& ip,
+                            const String& country, const String& city) {
+  (void)ip;
+  drv_.render([&](DisplayType& g) {
+    const int w = g.width();
+    const int h = g.height();
+
+    g.fillRect(0, 0, w, UI_HEADER_H, COLOR_INK);
+    String title = "X3 OSINT  " + String((int)nets.size()) + " nets";
+    textAt_(g, UI_MARGIN, (UI_HEADER_H + FONT_LARGE_CAP) / 2, FONT_LARGE,
+            fit_(g, FONT_LARGE, title, w - 230), COLOR_BG);
+
+    String geo;
+    if (city.length()) geo = city;
+    if (city.length() && country.length()) geo += ", ";
+    if (country.length()) geo += country;
+    if (geo.length()) {
+      String gt = fit_(g, FONT_SMALL, geo, 210);
+      int16_t bx, by;
+      uint16_t bw, bh;
+      g.setFont(FONT_SMALL);
+      g.getTextBounds(gt, 0, 0, &bx, &by, &bw, &bh);
+      textAt_(g, w - UI_MARGIN - (int)bw, (UI_HEADER_H + FONT_SMALL_CAP) / 2,
+              FONT_SMALL, gt, COLOR_BG);
+    }
+
+    if (nets.empty()) {
+      textAt_(g, UI_MARGIN, UI_HEADER_H + 60, FONT_MEDIUM,
+              "No networks. Select to rescan.", COLOR_INK);
+      hintBar_(g, w, h, "Select: rescan   Back: menu   Power(hold): sleep");
+      return;
+    }
+
+    int rows = rowsPerPage();
+    int y = UI_HEADER_H;
+    for (int i = 0; i < rows; ++i) {
+      int idx = scrollTop + i;
+      if (idx >= (int)nets.size()) break;
+      const ScannedAP& ap = nets[idx];
+      String l1 = String(idx + 1) + ". " + ap.ssid;
+      String l2 = String(ap.rssi) + " dBm  " + ap.vendor + "  " +
+                  WiFiScanner::authModeStr(ap.encryption) +
+                  (ap.isKnown ? "  [Known]" : "  [Unknown]");
+      listRow_(g, 0, y, w, UI_ROW_H, l1, l2, idx == selected);
+      y += UI_ROW_H;
+    }
+
+    String pos = String(selected + 1) + "/" + String((int)nets.size());
+    hintBar_(g, w, h, "Up/Down move   Select details   Back menu   " + pos);
+  });
+  drv_.hibernate();
+}
+
+void DuetTheme::showDetail(const ScannedAP& ap, const String& qrText,
+                           const String& qrLabel) {
+  bool hasQr = qr_.generate(qrText.c_str());
+  drv_.render([&](DisplayType& g) {
+    const int w = g.width();
+    const int h = g.height();
+    g.fillRect(0, 0, w, UI_HEADER_H, COLOR_INK);
+    textAt_(g, UI_MARGIN, (UI_HEADER_H + FONT_LARGE_CAP) / 2, FONT_LARGE,
+            "Network detail", COLOR_BG);
+
+    int qrArea = 0;
+    if (hasQr) {
+      int moduleSize = 4;
+      int budget = h - UI_HEADER_H - 60;
+      while (moduleSize > 1 && qr_.sizePixels(moduleSize) > budget) --moduleSize;
+      int qrPx = qr_.sizePixels(moduleSize);
+      int qx = w - UI_MARGIN - qrPx;
+      int qy = UI_HEADER_H + 30;
+      qr_.draw(g, qx, qy, moduleSize);
+      if (qrLabel.length())
+        textAt_(g, qx, qy + qrPx + 18, FONT_SMALL,
+                fit_(g, FONT_SMALL, qrLabel, qrPx + 60), COLOR_INK);
+      qrArea = qrPx + 2 * UI_MARGIN;
+    }
+
+    int textW = w - qrArea - 2 * UI_MARGIN;
+    int y = UI_HEADER_H + 40;
+    textAt_(g, UI_MARGIN, y, FONT_MEDIUM, fit_(g, FONT_MEDIUM, ap.ssid, textW),
+            COLOR_INK);
+    y += 40;
+    auto line = [&](const String& s) {
+      textAt_(g, UI_MARGIN, y, FONT_NORMAL, fit_(g, FONT_NORMAL, s, textW),
+              COLOR_INK);
+      y += 30;
+    };
+    line("BSSID:  " + ap.bssidStr);
+    line("Vendor: " + ap.vendor);
+    line("Signal: " + String(ap.rssi) + " dBm");
+    line("Channel: " + String(ap.channel));
+    line("Security: " + String(WiFiScanner::authModeStr(ap.encryption)));
+    line(ap.isKnown ? "Status: Known network" : "Status: Unknown network");
+    if (ap.country.length() || ap.city.length())
+      line("Geo: " + ap.city + (ap.city.length() ? ", " : "") + ap.country);
+
+    hintBar_(g, w, h, "Back: return to list");
+  });
+  drv_.hibernate();
+}
+
+void DuetTheme::showMenu(const String& title, const std::vector<String>& items,
+                         int selected) {
+  drv_.render([&](DisplayType& g) {
+    const int w = g.width();
+    const int h = g.height();
+    g.fillRect(0, 0, w, UI_HEADER_H, COLOR_INK);
+    textAt_(g, UI_MARGIN, (UI_HEADER_H + FONT_LARGE_CAP) / 2, FONT_LARGE,
+            fit_(g, FONT_LARGE, title, w - 2 * UI_MARGIN), COLOR_BG);
+
+    int y = UI_HEADER_H + 10;
+    const int rh = 56;
+    for (int i = 0; i < (int)items.size(); ++i) {
+      if (y + rh > h - 34) break;
+      listRow_(g, 0, y, w, rh, items[i], "", i == selected);
+      y += rh;
+    }
+    hintBar_(g, w, h, "Up/Down move   Select choose   Back return");
+  });
+  drv_.hibernate();
+}
+
+// ---------------------------------------------------------------------------
 //  Full-screen message
 // ---------------------------------------------------------------------------
 void DuetTheme::showMessage(const String& title, const String& line1,
