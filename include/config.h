@@ -94,11 +94,44 @@ static const uint16_t COLOR_BG  = 0xFFFF;  // white  — page + card background
 #define MAX_DISPLAY_CARDS  3    // WiFi cards shown per e-ink frame
 
 // ---------------------------------------------------------------------------
-//  Hardware pins (NON-display).  Display + SPI pins live in display_config.h.
-//  VERIFY THESE AGAINST YOUR X3 WIRING.
+//  Buttons (Xteink X3).  Two resistor-ladder ADC lines + one digital power
+//  button. Raw 12-bit ADC centers (0..4095) at 11 dB attenuation, confirmed
+//  from X3/X4 firmware analysis. Display/SPI pins live in display_config.h.
+//
+//  Physical layout: two large paddles each split L/R (4 zones) on ADC_A, plus
+//  two side buttons on ADC_B. Logical mapping (right=Up, left=Down):
+//    Up     = ADC_A RIGHT  or ADC_B UP
+//    Down   = ADC_A LEFT   or ADC_B DOWN
+//    Select = ADC_A CONFIRM
+//    Back   = ADC_A BACK
+//    Power  = digital power button
 // ---------------------------------------------------------------------------
-#define PIN_FORCE_PORTAL   9    // BOOT button on most ESP32-C3 boards (active LOW)
-#define FORCE_PORTAL_ACTIVE_LEVEL 0
+#define BTN_ADC_PIN_A   1     // GPIO1: BACK / CONFIRM / LEFT / RIGHT
+#define BTN_ADC_PIN_B   2     // GPIO2: UP / DOWN
+#define BTN_POWER_PIN   3     // GPIO3: power button, active LOW
+
+// ADC ladder centers (raw counts, 12-bit / 11 dB)
+#define ADC_A_BACK      3512
+#define ADC_A_CONFIRM   2694
+#define ADC_A_LEFT      1493
+#define ADC_A_RIGHT     5
+#define ADC_B_UP        2242
+#define ADC_B_DOWN      5
+#define ADC_TOLERANCE   300   // +/- match window; idle line rests near 4095
+
+#define BTN_DEBOUNCE_MS     20
+#define BTN_LONGPRESS_MS    800   // power long-press = sleep now
+#define BTN_REPEAT_MS       350   // held Up/Down auto-repeat
+
+// Hold BACK during power-on to force the captive portal (reconfigure).
+#define FORCE_PORTAL_HOLD_MS 1200
+
+// ---------------------------------------------------------------------------
+//  Interactivity / power management
+// ---------------------------------------------------------------------------
+#define UI_IDLE_SLEEP_MS   60000   // no input this long -> deep sleep
+#define PIN_WAKE           BTN_POWER_PIN  // GPIO wake source from deep sleep
+#define LAST_SCAN_PATH     "/last_scan.json"  // cached results for instant wake
 
 // ---------------------------------------------------------------------------
 //  Reconnaissance mode.  Stored as a string in config.json; parsed to enum.

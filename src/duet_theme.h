@@ -33,6 +33,20 @@ class DuetTheme {
   void showMessage(const String& title, const String& line1 = "",
                    const String& line2 = "", const String& line3 = "");
 
+  // ---- interactive screens (each renders a full frame immediately) ----
+  //  Scrollable results list with a highlighted selection.
+  void showResults(const std::vector<ScannedAP>& nets, int selected,
+                   int scrollTop, const String& ip, const String& country,
+                   const String& city);
+  //  Full detail for one network, with a QR code for quick capture.
+  void showDetail(const ScannedAP& ap, const String& qrText,
+                  const String& qrLabel);
+  //  Simple vertical menu with a highlighted item.
+  void showMenu(const String& title, const std::vector<String>& items,
+                int selected);
+  //  How many list rows fit on one results page (for the app's scroll math).
+  int rowsPerPage() const;
+
   // ---- spec-compatible aliases ----
   void renderHeader(const char* title) { setHeader(title); }
   void renderWiFiResults(const std::vector<ScannedAP>& nets);
@@ -64,8 +78,14 @@ class DuetTheme {
 
   void drawBadge_(DisplayType& g, int x, int y, int w, int h, const char* text,
                   bool filled);
+  void listRow_(DisplayType& g, int x, int y, int w, int h, const String& l1,
+                const String& l2, bool selected);
+  void hintBar_(DisplayType& g, int w, int h, const String& hint);
   static void textAt_(DisplayType& g, int x, int baselineY, const GFXfont* font,
                       const String& s, uint16_t color);
   static String fit_(DisplayType& g, const GFXfont* font, const String& s,
                      int maxW);
 };
+
+// Results list row height (px).
+#define UI_ROW_H 74

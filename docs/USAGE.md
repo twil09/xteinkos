@@ -30,26 +30,53 @@ hardware — edit `include/display_config.h` (see the README note) and re-flash.
    - **Scan Interval** — minutes between scans (deep-sleep time).
 5. Tap **Save & Start Scanning**. The device stores the config and reboots.
 
-## 3. Normal operation
+## 3. Normal operation & controls
 
-On each cycle the device:
+After setup the device scans, then drops into an **interactive results screen**
+you drive with the buttons.
 
-1. Connects to your home WiFi (shows *Connecting…*; on failure it shows an error
-   and retries after 30 s).
-2. Runs a passive WiFi scan and enriches each result (vendor, known/unknown).
-3. If in **OSINT Mode** with a server URL, fetches device GeoIP.
-4. Appends results to `/scans.log`.
-5. Renders the Duet frame: dark header with network count, a GeoIP card (if
-   available), result cards (strongest first) with known/unknown badges, a
-   status line, and a QR code.
-6. Deep-sleeps until the next interval. The e-ink image stays on screen while
-   asleep.
+### Buttons
+
+The X3 has two large split paddles (four zones — Back / Select / Up / Down),
+two side buttons (right = Up, left = Down), and a power button.
+
+| Screen | Up / Down | Select | Back | Power (hold) |
+|--------|-----------|--------|------|--------------|
+| **Results** | move selection | open **Detail** | open **Menu** | sleep |
+| **Detail** | previous / next network | — | back to list | sleep |
+| **Menu** | move | choose item | back to results | sleep |
+
+Held Up/Down auto-repeats for fast scrolling. A short press of Power does
+nothing (so you can't sleep by accident); hold it (~0.8 s) to sleep.
+
+### Screens
+
+- **Results** — dark header with the network count and (if available) GeoIP;
+  one row per network, strongest first, each showing SSID, signal, vendor,
+  security and a `[Known]`/`[Unknown]` tag. The selected row is highlighted.
+- **Detail** — full info for one network (BSSID, vendor, signal, channel,
+  security, known status, geo) plus a QR code. With a server URL the QR opens
+  the dashboard for that AP; otherwise it's a standard WiFi QR of the SSID.
+- **Menu** — **Rescan now**, **Reconfigure WiFi**, **Toggle GeoIP mode**,
+  **Sleep now**, **About**.
+
+### Sleep & wake
+
+- After **60 s** of no input (or **Menu → Sleep now**, or holding Power) the
+  device deep-sleeps. The e-ink image stays on screen while asleep.
+- It wakes on the **power button** (shows the cached results instantly, no
+  re-scan) or on the **scan-interval timer** (re-scans, then shows results).
+
+Each scan still connects to WiFi, enriches (vendor / known / optional GeoIP),
+appends to `/scans.log`, and caches the results to `/last_scan.json`.
 
 ## 4. Reconfiguring
 
-- **Force the portal:** hold the **BOOT** button (GPIO9) while powering on.
-- **Wipe config:** delete `/config.json` from LittleFS (e.g. re-run `uploadfs`
-  with a fresh `default_config.json`, or add a serial command).
+- **Force the portal:** hold **Back** while powering on (~1.2 s).
+- **From the device:** Menu → **Reconfigure WiFi** (clears config and reboots
+  into the portal).
+- **Wipe config manually:** delete `/config.json` from LittleFS (e.g. re-run
+  `uploadfs` with a fresh `default_config.json`).
 
 ## 5. Optional data files (LittleFS)
 
@@ -110,8 +137,11 @@ download utilities, or add a serial/HTTP dump command). It rotates to
 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
-| Blank / garbled screen | Wrong panel class or pins in `display_config.h` |
+| Blank screen | Verify SPI pins in `display_config.h`; the driver is untested on hw |
+| Image upside-down / shifted | Flip gate reversal in `lib/GxEPD2_X3/GxEPD2_368_X3.cpp` `_setPartialRamArea` (see the header's tuning notes) |
+| Buttons do nothing / wrong action | Re-check ADC centers in `config.h` against your unit (values vary slightly); widen `ADC_TOLERANCE` |
+| Won't wake from sleep | Power button must idle HIGH; confirm `BTN_POWER_PIN` (GPIO3) |
 | Portal never appears | Rejoin `X3-OSINT`; browse to `http://192.168.4.1` |
-| Stuck “Connecting…” then retry | Wrong WiFi password, or 5 GHz-only SSID (C3 is 2.4 GHz) |
-| GeoIP card missing | Not in OSINT Mode, no server URL, or server unreachable |
+| “WiFi failed” then results | Wrong WiFi password, or 5 GHz-only SSID (C3 is 2.4 GHz) |
+| GeoIP missing | Not in OSINT Mode, no server URL, or server unreachable |
 | Config won't stick | LittleFS mount/write failure — check serial log |

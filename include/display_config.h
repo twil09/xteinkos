@@ -8,6 +8,7 @@
 #pragma once
 
 #include <GxEPD2_BW.h>
+#include <GxEPD2_368_X3.h>   // custom SSD1677 792x528 class (lib/GxEPD2_X3)
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
@@ -15,29 +16,39 @@
 #include "config.h"
 
 // ---------------------------------------------------------------------------
-//  >>> HARDWARE: VERIFY / EDIT FOR YOUR X3 <<<
+//  >>> HARDWARE: X3 PANEL <<<
 //
-//  The Xteink X3's exact panel controller is not published, so we default to a
-//  common large monochrome panel class that ships with GxEPD2 (Waveshare 7.5"
-//  UC8179, 800x480). The firmware compiles and runs against it, but for a
-//  correct image on YOUR device set X3_PANEL_CLASS to the GxEPD2 class that
-//  matches your controller (see GxEPD2/src/GxEPD2_BW.h for the full list) and
-//  adjust the pin map below to your wiring.
+//  The Xteink X3 uses an SSD1677 controller driving a 3.68" 792x528 panel
+//  (framebuffer 99x528 bytes = 52,272 bytes; the glass is physically 792x600).
+//  GxEPD2 has no stock class for 792x528, so this project ships a custom one:
+//  lib/GxEPD2_X3/GxEPD2_368_X3 — a faithful adaptation of GxEPD2's SSD1677
+//  driver (GDEQ0426T82) at 792x528, using the panel's built-in OTP waveforms
+//  (no custom LUT upload needed for full refresh). SPI defaults to 4 MHz mode 0
+//  in GxEPD2, safely under the X3's 10 MHz ceiling.
+//
+//  This is written from the confirmed X3 specs but has NOT been validated on
+//  real hardware. If the image is wrong, see the tuning notes at the top of
+//  lib/GxEPD2_X3/GxEPD2_368_X3.h. To fall back to the stock 4.26" SSD1677 class
+//  for bring-up (right controller, wrong 800x480 geometry), set X3_PANEL_CLASS
+//  to GxEPD2_426_GDEQ0426T82 instead.
 //
 //  Layout throughout the firmware uses DISPLAY_WIDTH x DISPLAY_HEIGHT
-//  (792 x 528 from the build flags), so once the right panel is selected the
-//  UI lands in the right place.
+//  (792 x 528 from the build flags).
 // ---------------------------------------------------------------------------
-#define X3_PANEL_CLASS GxEPD2_750_T7
+#define X3_PANEL_CLASS GxEPD2_368_X3
 
-// SPI + control pins — VERIFY against your board.
-#define EPD_PIN_SCK    4
-#define EPD_PIN_MOSI   6
+// SPI + control pins for the Xteink X3 (ESP32-C3). Confirmed from the SSD1677
+// driver notes / RE analysis; re-verify if your board revision differs.
+//   SPI: MSB first, mode 0, 10 MHz MAX (the X3 controller will not tolerate
+//   faster — the stock 4.26" class clocks at 40 MHz, so your custom X3 class
+//   must lower this).
+#define EPD_PIN_SCK    8
+#define EPD_PIN_MOSI   10
 #define EPD_PIN_MISO   -1   // e-ink is write-only; leave unconnected
-#define EPD_PIN_CS     7
-#define EPD_PIN_DC     5
-#define EPD_PIN_RST    10
-#define EPD_PIN_BUSY   3
+#define EPD_PIN_CS     21
+#define EPD_PIN_DC     4
+#define EPD_PIN_RST    5
+#define EPD_PIN_BUSY   6
 
 // Concrete display type used everywhere. The second template parameter is the
 // number of rows buffered at once; the panel HEIGHT gives a full framebuffer.

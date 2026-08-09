@@ -12,6 +12,10 @@
 *.bin
 *.elf
 *.map
+
+# ...but DO track the published prebuilt images (see FLASHING.md)
+!firmware/
+!firmware/*.bin
 .DS_Store
 Thumbs.db
 
