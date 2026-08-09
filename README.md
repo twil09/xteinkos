@@ -84,13 +84,17 @@ pio run -t uploadfs
 pio device monitor
 ```
 
-> **Before your first real build, open `include/display_config.h`.** The X3's
-> exact e-ink controller isn't published, so the firmware defaults to a common
-> GxEPD2 panel class (`GxEPD2_750_T7`, 800×480) and a placeholder SPI pin map so
-> it compiles out of the box. Set `X3_PANEL_CLASS` to the class that matches
-> your controller and correct the `EPD_PIN_*` pins for your wiring, or the
-> screen will stay blank / garbled. Everything else keys off the
-> `DISPLAY_WIDTH`/`DISPLAY_HEIGHT` build flags (792×528).
+> **Before your first real build, open `include/display_config.h`.** The X3
+> uses an **SSD1677** controller on a 3.68" **792×528** panel. The pin map is
+> pre-filled with the confirmed X3 wiring (SCK=8, MOSI=10, CS=21, DC=4, RST=5,
+> BUSY=6; SPI mode 0, **10 MHz max**). GxEPD2 has no stock class for 792×528,
+> so `X3_PANEL_CLASS` defaults to the stock SSD1677 4.26" class
+> (`GxEPD2_426_GDEQ0426T82`) — right controller, wrong geometry (800×480). For a
+> correct image you must supply a **custom 792×528 SSD1677 GxEPD2 class** (copy
+> `GxEPD2_426_GDEQ0426T82`, set WIDTH=792/HEIGHT=528, clamp SPI to 10 MHz, and
+> use the X3 LUT waveforms) and point `X3_PANEL_CLASS` at it. See
+> `include/display_config.h` for the reference links. Everything else keys off
+> the `DISPLAY_WIDTH`/`DISPLAY_HEIGHT` build flags (792×528).
 
 ## First run
 

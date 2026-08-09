@@ -56,11 +56,16 @@ Dependencies flow one way: `main` wires everything together; the UI layer
 
 ## Display abstraction
 
-The one hardware unknown on the X3 is the e-ink controller, so all panel
-specifics live in **`include/display_config.h`**:
+All panel specifics live in **`include/display_config.h`**:
 
-- `X3_PANEL_CLASS` — the GxEPD2 panel class (defaults to `GxEPD2_750_T7`).
-- `EPD_PIN_*` — SPI + control pins.
+- `X3_PANEL_CLASS` — the GxEPD2 panel class. The X3 is an **SSD1677** at
+  **792×528**, which has no stock GxEPD2 class; the default is the stock SSD1677
+  4.26" class (`GxEPD2_426_GDEQ0426T82`, correct controller / wrong geometry)
+  and should be replaced with a custom 792×528 SSD1677 class for a correct image
+  (copy the GDEQ0426T82 driver, set WIDTH/HEIGHT, clamp SPI to 10 MHz, use the
+  X3 LUTs — reference links are in the header).
+- `EPD_PIN_*` — SPI + control pins (X3: SCK=8, MOSI=10, CS=21, DC=4, RST=5,
+  BUSY=6; SPI mode 0, 10 MHz max).
 - Font macros mapping the spec's size tiers to Adafruit GFX FreeFonts.
 
 `DisplayDriver` exposes `render(paint)`, which runs GxEPD2's
@@ -103,7 +108,9 @@ the project URL when no server is configured.
 
 ## Known limitations / future work
 
-- Default panel class is a placeholder; set the correct one for a real image.
+- Default panel class is the stock SSD1677 4.26" class (correct controller,
+  800×480 geometry); a custom 792×528 SSD1677 class is needed for a correct
+  image on the X3.
 - "Active Scan" currently behaves like passive; BLE scanning is a future add.
 - GeoIP is device-level (your public IP). Per-AP geolocation would require an
   external WiFi-geolocation service and is intentionally not built in.
