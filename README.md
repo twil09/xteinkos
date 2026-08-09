@@ -119,6 +119,15 @@ pio device monitor
 > `include/display_config.h` for the reference links. Everything else keys off
 > the `DISPLAY_WIDTH`/`DISPLAY_HEIGHT` build flags (792×528).
 
+## Prebuilt images / flashing
+
+Don't want to build from source? Ready-to-flash binaries live in
+[`firmware/`](firmware/), and [`FLASHING.md`](FLASHING.md) has the full guide
+(web flasher, esptool, offsets, stock-firmware backup, troubleshooting). Short
+version: flash **`firmware/xteinkos-x3-full.bin`** at offset **`0x0`** with a web
+or serial flasher. These images are **untested on real hardware** — read the
+notes in `FLASHING.md` first.
+
 ## First run
 
 1. Flash firmware + filesystem.
