@@ -1,8 +1,0 @@
-{
-  "ssid": "",
-  "password": "",
-  "mode": "osint",
-  "server_url": "",
-  "scan_interval": 300,
-  "configured": false
-}

@@ -1,0 +1,38 @@
+Welcome to xteinkOS
+===================
+
+This is the built-in reader on your Xteink X3.
+
+You are reading a plain-text (.txt) file. Use the arrow buttons to turn pages:
+Down or Right goes forward, Up or Left goes back. Press Back to return to the
+Library, and Back again for the home menu. Your reading position is saved
+automatically for each book.
+
+
+Adding your own books
+---------------------
+
+Two ways:
+
+1. microSD card: copy .txt or .md files onto a card (root folder or a /books
+   folder) and insert it. They appear in the Library tagged [SD].
+
+2. Internal flash: put files in the firmware project's "data/books" folder and
+   run:  pio run -t uploadfs
+
+
+About this OS
+-------------
+
+xteinkOS is a small, Duet-styled operating system: a home launcher for a set of
+offline games, this book reader, plus Wi-Fi and QR tools. It runs on the
+community e-paper SDK's display and input drivers, native to the X3's 792x528
+e-ink screen.
+
+Games: 2048, Tic-Tac-Toe, Sudoku, Minesweeper, 15 Puzzle, Lights Out, Snake,
+Memory Match, Connect Four, Reversi, Hangman, and Blackjack.
+
+Happy reading, and happy playing.
+
+
+-- End of sample. Press Back to return to the Library. --
