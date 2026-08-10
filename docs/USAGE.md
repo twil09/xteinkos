@@ -31,7 +31,7 @@ Open Library → pick a book → arrows turn pages. Your position is saved per b
 
 ## Wi-Fi & QR
 
-- **Wi-Fi Setup → Set up via phone:** the device makes an open `Vix OS-Setup`
+- **Wi-Fi Setup → Set up via phone:** the device makes an open `Vix-Setup`
   network; join it (scan the on-screen QR), a page opens, enter your home Wi-Fi,
   Save. The device stores it and connects. **Connect to saved** reconnects later.
 - **QR Codes:** Left/Right cycles between the project link, a Wi-Fi-share code,

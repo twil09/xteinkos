@@ -6,7 +6,7 @@
 #include "WifiStore.h"
 #include "theme.h"
 
-#define AP_NAME "xteinkOS-Setup"
+#define AP_NAME "Vix-Setup"
 
 static const char FORM_HTML[] PROGMEM =
     "<!doctype html><html><head><meta charset=UTF-8>"

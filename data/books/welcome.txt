@@ -1,4 +1,4 @@
-Welcome to xteinkOS
+Welcome to Vix OS
 ===================
 
 This is the built-in reader on your Xteink X3.
@@ -24,7 +24,7 @@ Two ways:
 About this OS
 -------------
 
-xteinkOS is a small, Duet-styled operating system: a home launcher for a set of
+Vix OS is a small, Duet-styled operating system: a home launcher for a set of
 offline games, this book reader, plus Wi-Fi and QR tools. It runs on the
 community e-paper SDK's display and input drivers, native to the X3's 792x528
 e-ink screen.
