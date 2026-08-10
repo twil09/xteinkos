@@ -1,6 +1,6 @@
 # Prebuilt firmware images
 
-Ready-to-flash builds of **xteinkOS** for the Xteink X3 (ESP32-C3, 16 MB, DIO).
+Ready-to-flash builds of **Vix OS** for the Xteink X3 (ESP32-C3, 16 MB, DIO).
 See [`../FLASHING.md`](../FLASHING.md) for full instructions and backup steps.
 
 | File | Contents | Offset |

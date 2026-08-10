@@ -1,6 +1,6 @@
 # Architecture
 
-xteinkOS is a small ESP32-C3 firmware: a Duet-styled **app launcher** over a
+Vix OS is a small ESP32-C3 firmware: a Duet-styled **app launcher** over a
 stack of **Apps** (games, reader, utilities), drawn to the X3 e-ink through the
 MIT community-sdk's proven display driver.
 

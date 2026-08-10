@@ -1,49 +1,53 @@
-# xteinkOS
+# Vix OS
 
-A custom, **Duet-styled** operating system for the **Xteink X3** e-reader
-(ESP32-C3, 792×528 e-ink): a home launcher for a set of **offline games**, a
-**book reader**, and **Wi-Fi + QR** tools. Built on the MIT-licensed
-[community-sdk](https://github.com/crosspoint-reader/community-sdk) hardware
-layer (the same proven `EInkDisplay` driver CrossPoint uses), so it runs
-natively on the X3's screen.
+A custom, **portrait** operating system for the **Xteink X3** e-reader
+(ESP32-C3, 792×528 e-ink, run at **528×792**). A book reader, a folder of
+**offline games**, Wi-Fi + QR tools, reading stats, and sleep — built on the
+MIT-licensed [community-sdk](https://github.com/crosspoint-reader/community-sdk)
+hardware layer (the proven X3 `EInkDisplay` driver), so it runs natively on the
+device.
 
-> Pivoted from an earlier OSINT scanner build; see git history for that.
+## Home
 
-## Features
+A **book carousel** across the top (each cover shows the title, with a centred
+**tick** once you finish the book), over a **2×2 section grid**:
 
-**Games (12):** 2048, Tic-Tac-Toe (vs unbeatable CPU), Sudoku, Minesweeper,
-15 Puzzle, Lights Out, Snake, Memory Match, Connect Four (2-player), Reversi
-(vs CPU), Hangman, Blackjack.
-
-**Library:** paginated `.txt` / `.md` reader from a **microSD card** (root or
-`/books`, tagged `[SD]`) **or** internal flash (LittleFS `/books`), word-wrapped,
-with per-book reading position saved.
-
-**Wi-Fi Setup:** connect to a saved network, or set one from your phone via a
-captive portal (`xteinkOS-Setup` AP → form → saved to flash).
-
-**QR Codes:** scannable codes to share your Wi-Fi, open the device's address, or
-the project link.
-
-**System:** Duet-styled scrolling launcher; idle **deep-sleep** with power-button
-wake (the e-ink image persists while asleep).
-
-Footprint: ~19% of the 16 MB flash, ~29% RAM — plenty of room to grow.
+- **Games** — folder of 12 offline games
+- **Files** — splits into **Books** and **Images**
+- **Wi-Fi** — status + connect / phone captive-portal setup
+- **Settings** — device info, reading stats, sleep, QR codes
 
 ## Controls
 
-Two large paddles split into four zones (**Back / Confirm / Left / Right**), two
-side buttons (**right = Up, left = Down**), and a **Power** button.
+The X3's two bottom paddles give four zones — **Back / Select / Left / Right** —
+the primary controls, shown as an on-screen button bar. The two **side buttons
+are Up / Down** (page turning in the reader, and scrolling elsewhere).
 
-| Screen | Up/Down/Left/Right | Confirm | Back |
-|--------|--------------------|---------|------|
-| Home | move / scroll | open app | — |
-| Games | move / play | place / new game | home |
-| Library | select | read | home |
-| Reader | prev / next page | — | library |
+## Reader & formats
 
-Minesweeper uses **Back = flag**, **Power = exit**. Blackjack uses
-**Up/Confirm = Hit, Down = Stand**.
+Paginated, word-wrapped reader from a **microSD card** (root or `/books` /
+`/images`) **or** internal flash. Rendered now: `.txt .md .xtc .html .rtf`
+(HTML/RTF tags stripped). Listed and routed to staged viewers: `.epub .pdf
+.mobi .cbz .cbr` and images `.jpg .jpeg .png .bmp .gif`. Reading position is
+saved per book.
+
+## Reading stats
+
+Tracks total reading time and pages, a **reading-speed score (1–100)** (from
+average time per page), and per-book completion (the carousel tick). Shown in
+**Settings → Reading**. Sharing stats with another Vix OS device over Wi-Fi is
+the next step (a Share entry is present).
+
+## Games (12)
+
+2048, Tic-Tac-Toe, Sudoku, Minesweeper, 15 Puzzle, Lights Out, Snake, Memory
+Match, Connect Four (2P), Reversi (vs CPU), Hangman, Blackjack.
+
+## Sleep
+
+Idle (or **Settings → Sleep now**, or the power button) shows a sleep screen —
+a large **V**, "Vix OS", "Sleeping" — then deep-sleeps; the e-ink keeps its
+image and the power button wakes it.
 
 ## Build & flash
 
@@ -53,46 +57,40 @@ Requires [PlatformIO](https://platformio.org/).
 pio run                 # compile
 pio run -t upload       # flash over USB
 pio run -t uploadfs     # upload LittleFS (bundled sample book in data/books)
-pio device monitor      # serial @ 115200
 ```
 
-**Prebuilt image:** in the CrossPoint web flasher pick **"Custom .bin"** and
-select [`firmware/xteinkos-x3-app.bin`](firmware/). See [`FLASHING.md`](FLASHING.md)
-(and back up your stock firmware first).
-
-Books: drop `.txt`/`.md` on a microSD (root or `/books`), or add them to
-`data/books/` and run `pio run -t uploadfs`.
+Prebuilt: in the CrossPoint web flasher pick **"Custom .bin"** →
+[`firmware/xteinkos-x3-app.bin`](firmware/). See [`FLASHING.md`](FLASHING.md).
+Add books on a microSD (`.txt`/… in root or `/books`) or in `data/books/` +
+`uploadfs`.
 
 ## Layout
 
 ```
-platformio.ini         Build config (X3, 16 MB, CrossPoint partitions)
-partitions.csv         16 MB partition table
-include/config.h       Screen size, pins, colors, button map, paths
+include/config.h       Portrait dims, pins, colors, button map, paths
 lib/                   Vendored MIT SDK: EInkDisplay, InputManager, SDCardManager
 src/
-  main.cpp             Entry point + deep-sleep
-  DuetDisplay.*        GFXcanvas1 -> e-ink bridge
-  theme.h              Duet drawing helpers
-  Buttons.h            Logical button facade
-  App.h / AppManager.* App framework (stack + redraw/tick loop)
-  HomeApp.*            Launcher
-  <game>.*             one App per game
-  LibraryApp.* ReaderApp.* BookSource.* ProgressStore.*   reader
-  WiFiApp.* WifiStore.* QrApp.* QrView.h                   wi-fi + QR
+  main.cpp             Entry + sleep screen + deep-sleep
+  DuetDisplay.*        Rotated GFXcanvas1 -> e-ink
+  theme.h              Header bar, tiles, button bar, list rows
+  App.h AppManager.*   App framework (stack, tick, idle, sleep request)
+  HomeApp.*            Carousel + section grid
+  GamesApp.* <game>.*  Games folder + one App per game
+  FilesApp.* LibraryApp.* ReaderApp.* BookSource.* ProgressStore.* Stats.*
+  WiFiApp.* WifiStore.* QrApp.* QrView.h  SettingsApp.*
 ```
 
 ## Status / notes
 
-- Compiles clean and is built on the proven SDK display/input drivers.
-- **Not yet verified on physical hardware** (no device available in the build
-  environment). SD and Wi-Fi build cleanly but are untested on the shared SPI
-  bus; internal-flash reading is the guaranteed fallback.
-- Next: EPUB, Wi-Fi book upload + NTP clock, BQ27220 battery gauge, more games.
+- Compiles clean; built on the proven SDK display/input drivers (portrait via a
+  rotated canvas). ~19% flash, ~29% RAM.
+- **Hardware-tested:** boots on the X3 (previous landscape build confirmed).
+  This portrait build + new UI should be flashed and checked.
+- **Staged:** EPUB/PDF/MOBI/CBZ/CBR rendering, JPEG/PNG decoding to e-ink, and
+  live device-to-device stat sharing — recognised/entry-pointed now.
 
 ## Credits & license
 
-Hardware layer: **community-sdk** (`EInkDisplay`, `InputManager`,
-`SDCardManager`) © Open X4 E-Paper Contributors, **MIT** — vendored under `lib/`.
-Display pin map/approach informed by the CrossPoint reader project. Application
-code here is the project owner's; add a top-level LICENSE before distributing.
+Hardware layer © Open X4 E-Paper Contributors (**MIT**), vendored under `lib/`;
+pin map/approach informed by CrossPoint. App code is the project owner's — add a
+top-level LICENSE before distributing.

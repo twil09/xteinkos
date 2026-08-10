@@ -1,4 +1,4 @@
-# Flashing xteinkOS
+# Flashing Vix OS
 
 > **Read first.** Built on the community-sdk's proven X3 `EInkDisplay` driver, so
 > it should boot and render — but it hasn't been verified end-to-end on physical
@@ -26,7 +26,7 @@ and takes a single **application image**:
 1. Connect the X3 over USB (WebSerial).
 2. Select model **X3** → **"Custom .bin"**.
 3. Choose **`xteinkos-x3-app.bin`** and flash.
-4. Reset → the xteinkOS home launcher appears.
+4. Reset → the Vix OS home launcher appears.
 
 This is a plain ESP32-C3 app image (magic `0xE9`, declared size == file size —
 verified), so it won't trigger the flasher's "declared size does not match file
