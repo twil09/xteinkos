@@ -1,163 +1,98 @@
-# xteinkos — X3 OSINT OS
+# xteinkOS
 
-Custom firmware for the **Xteink X3** e-reader (ESP32-C3, 792×528 monochrome
-e-ink). It turns the device into a passive WiFi environment scanner with a
-first-run captive-portal setup, an **interactive button-driven UI**, offline
-vendor/known-network enrichment, optional HTTP data enrichment, per-network QR
-codes, and a Duet-styled e-ink UI — with deep-sleep power management and
-button/timer wake.
+A custom, **Duet-styled** operating system for the **Xteink X3** e-reader
+(ESP32-C3, 792×528 e-ink): a home launcher for a set of **offline games**, a
+**book reader**, and **Wi-Fi + QR** tools. Built on the MIT-licensed
+[community-sdk](https://github.com/crosspoint-reader/community-sdk) hardware
+layer (the same proven `EInkDisplay` driver CrossPoint uses), so it runs
+natively on the X3's screen.
 
-> **Responsible use.** This tool performs **passive** WiFi scanning — it listens
-> to the beacon frames access points already broadcast (the same data your
-> phone's WiFi list shows). It does **not** deauth, inject packets, capture
-> traffic, or crack anything. The captive portal only collects **your own**
-> home WiFi credentials to provision **your own** device. Logging nearby
-> networks (wardriving) is regulated differently around the world — know and
-> follow the laws where you use it, and don't log or enrich networks you have
-> no right to.
-
----
+> Pivoted from an earlier OSINT scanner build; see git history for that.
 
 ## Features
 
-- **Captive setup portal** — boots an `X3-OSINT` soft-AP; the config page
-  auto-opens on your phone (Duet-styled, mobile-responsive).
-- **Interactive UI** — browse results, open per-network detail, and act from a
-  menu, all with the X3's buttons. Deep-sleeps on inactivity; wakes on the power
-  button or the scan timer, showing cached results instantly.
-- **Persistent config** — stored as `/config.json` on LittleFS; survives
-  reboots and deep sleep. Last scan cached to `/last_scan.json`.
-- **Passive WiFi scan** — SSID, BSSID, RSSI, channel, auth mode.
-- **Offline enrichment** — MAC→vendor via a built-in OUI table (extendable with
-  `/oui.csv`), and a known/unknown badge from your home SSID + an optional
-  `/known_networks.txt`.
-- **Online enrichment (optional)** — device-level GeoIP from a data server you
-  run (`GET <server>/api/geoip`).
-- **Duet e-ink UI** — dark header bar, outlined result cards, known/unknown
-  badges, GeoIP card, status line, and a QR code footer.
-- **QR linking** — encodes your dashboard/results URL for quick phone access.
-- **CSV logging** — appends every scan to `/scans.log` with size-based rotation.
-- **Deep sleep** — sleeps between scans on a configurable interval for battery
-  life; the e-ink image persists while asleep.
+**Games (12):** 2048, Tic-Tac-Toe (vs unbeatable CPU), Sudoku, Minesweeper,
+15 Puzzle, Lights Out, Snake, Memory Match, Connect Four (2-player), Reversi
+(vs CPU), Hangman, Blackjack.
+
+**Library:** paginated `.txt` / `.md` reader from a **microSD card** (root or
+`/books`, tagged `[SD]`) **or** internal flash (LittleFS `/books`), word-wrapped,
+with per-book reading position saved.
+
+**Wi-Fi Setup:** connect to a saved network, or set one from your phone via a
+captive portal (`xteinkOS-Setup` AP → form → saved to flash).
+
+**QR Codes:** scannable codes to share your Wi-Fi, open the device's address, or
+the project link.
+
+**System:** Duet-styled scrolling launcher; idle **deep-sleep** with power-button
+wake (the e-ink image persists while asleep).
+
+Footprint: ~19% of the 16 MB flash, ~29% RAM — plenty of room to grow.
 
 ## Controls
 
-The X3 has two large split paddles (4 zones: Back / Select / Up / Down) plus two
-side buttons (right = Up, left = Down) and a power button.
+Two large paddles split into four zones (**Back / Confirm / Left / Right**), two
+side buttons (**right = Up, left = Down**), and a **Power** button.
 
-| Screen | Up / Down | Select | Back | Power |
-|--------|-----------|--------|------|-------|
-| **Results** | move selection | open detail | menu | *(hold)* sleep |
-| **Detail** | prev / next network | — | back to list | *(hold)* sleep |
-| **Menu** | move | choose | back to results | *(hold)* sleep |
+| Screen | Up/Down/Left/Right | Confirm | Back |
+|--------|--------------------|---------|------|
+| Home | move / scroll | open app | — |
+| Games | move / play | place / new game | home |
+| Library | select | read | home |
+| Reader | prev / next page | — | library |
 
-Menu actions: **Rescan now**, **Reconfigure WiFi** (clears config → portal),
-**Toggle GeoIP mode**, **Sleep now**, **About**. Hold **Back** during power-on to
-force the setup portal.
-
-## Repository layout
-
-```
-platformio.ini            Build config (env:x3)
-include/
-  config.h                Constants: colors, sizes, timeouts, buttons, paths
-  display_config.h        Panel class (custom X3 driver), SPI pins, fonts
-lib/
-  GxEPD2_X3/              Custom GxEPD2 SSD1677 792x528 driver (GPL-3.0)
-src/
-  main.cpp                Boot + interactive app state machine + sleep/wake
-  config_manager.*        LittleFS + JSON config persistence
-  portal_server.*         Soft-AP + DNS + captive web form
-  input_buttons.*         ADC-ladder + power button decode (debounce/repeat)
-  results_store.*         Cache last scan to LittleFS for instant wake
-  wifi_scanner.*          Passive scan + enrichment glue
-  osint_db.*              OUI vendor lookup + known-network check
-  http_manager.*          HTTP(S) fetch + JSON + GeoIP helper
-  duet_theme.*            Duet-styled e-ink UI (results/detail/menu/message)
-  qr_display.*            QR generation + module rendering
-  display_driver.*        GxEPD2 wrapper (paged render loop)
-  osint_logger.*          CSV scan log with rotation
-data/
-  default_config.json     Seed config (configured=false -> portal on first boot)
-web/
-  portal.html             Canonical captive-portal page (embedded in firmware)
-docs/
-  ARCHITECTURE.md         How the pieces fit together
-  USAGE.md                End-user + operator guide
-```
+Minesweeper uses **Back = flag**, **Power = exit**. Blackjack uses
+**Up/Confirm = Hit, Down = Stand**.
 
 ## Build & flash
 
-Requires [PlatformIO](https://platformio.org/) (`pip install platformio` or the
-VS Code extension).
+Requires [PlatformIO](https://platformio.org/).
 
 ```bash
-# Compile
-pio run
-
-# Flash firmware over USB
-pio run -t upload
-
-# Upload the LittleFS image (data/ -> device filesystem: default config,
-# optional oui.csv / known_networks.txt)
-pio run -t buildfs
-pio run -t uploadfs
-
-# Serial monitor
-pio device monitor
+pio run                 # compile
+pio run -t upload       # flash over USB
+pio run -t uploadfs     # upload LittleFS (bundled sample book in data/books)
+pio device monitor      # serial @ 115200
 ```
 
-> **Before your first real build, open `include/display_config.h`.** The X3
-> uses an **SSD1677** controller on a 3.68" **792×528** panel. The pin map is
-> pre-filled with the confirmed X3 wiring (SCK=8, MOSI=10, CS=21, DC=4, RST=5,
-> BUSY=6; SPI mode 0, **10 MHz max**). GxEPD2 has no stock class for 792×528,
-> so `X3_PANEL_CLASS` defaults to the stock SSD1677 4.26" class
-> (`GxEPD2_426_GDEQ0426T82`) — right controller, wrong geometry (800×480). For a
-> correct image you must supply a **custom 792×528 SSD1677 GxEPD2 class** (copy
-> `GxEPD2_426_GDEQ0426T82`, set WIDTH=792/HEIGHT=528, clamp SPI to 10 MHz, and
-> use the X3 LUT waveforms) and point `X3_PANEL_CLASS` at it. See
-> `include/display_config.h` for the reference links. Everything else keys off
-> the `DISPLAY_WIDTH`/`DISPLAY_HEIGHT` build flags (792×528).
+**Prebuilt image:** in the CrossPoint web flasher pick **"Custom .bin"** and
+select [`firmware/xteinkos-x3-app.bin`](firmware/). See [`FLASHING.md`](FLASHING.md)
+(and back up your stock firmware first).
 
-## Prebuilt images / flashing
+Books: drop `.txt`/`.md` on a microSD (root or `/books`), or add them to
+`data/books/` and run `pio run -t uploadfs`.
 
-Don't want to build from source? Ready-to-flash binaries live in
-[`firmware/`](firmware/), and [`FLASHING.md`](FLASHING.md) has the full guide
-(CrossPoint web flasher, esptool, offsets, stock-firmware backup,
-troubleshooting). Short version: in the **CrossPoint web flasher**, pick
-**"Custom .bin"** and select **`firmware/xteinkos-x3-app.bin`** (a plain
-ESP32-C3 app image — do *not* use a merged full-flash image, which the flasher
-rejects with a "declared size" error). The X3 has **16 MB** flash. These images
-are **untested on real hardware** — read the notes in `FLASHING.md` first.
+## Layout
 
-## First run
+```
+platformio.ini         Build config (X3, 16 MB, CrossPoint partitions)
+partitions.csv         16 MB partition table
+include/config.h       Screen size, pins, colors, button map, paths
+lib/                   Vendored MIT SDK: EInkDisplay, InputManager, SDCardManager
+src/
+  main.cpp             Entry point + deep-sleep
+  DuetDisplay.*        GFXcanvas1 -> e-ink bridge
+  theme.h              Duet drawing helpers
+  Buttons.h            Logical button facade
+  App.h / AppManager.* App framework (stack + redraw/tick loop)
+  HomeApp.*            Launcher
+  <game>.*             one App per game
+  LibraryApp.* ReaderApp.* BookSource.* ProgressStore.*   reader
+  WiFiApp.* WifiStore.* QrApp.* QrView.h                   wi-fi + QR
+```
 
-1. Flash firmware + filesystem.
-2. On boot the display shows **“Waiting for config”**.
-3. Join the **`X3-OSINT`** WiFi (password `password123`) from your phone.
-4. The setup page opens automatically — enter your home WiFi, pick a mode,
-   optionally set a data server URL and scan interval, then **Save**.
-5. The device reboots, connects, scans, renders results, and deep-sleeps until
-   the next interval.
+## Status / notes
 
-To reconfigure later, hold the **BOOT** button (GPIO9) during power-on to force
-the portal, or delete `/config.json`.
+- Compiles clean and is built on the proven SDK display/input drivers.
+- **Not yet verified on physical hardware** (no device available in the build
+  environment). SD and Wi-Fi build cleanly but are untested on the shared SPI
+  bus; internal-flash reading is the guaranteed fallback.
+- Next: EPUB, Wi-Fi book upload + NTP clock, BQ27220 battery gauge, more games.
 
-See [`docs/USAGE.md`](docs/USAGE.md) for the full guide and the optional data
-server, and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for internals.
+## Credits & license
 
-## Configuration reference (`/config.json`)
-
-| Key             | Type   | Meaning                                        |
-|-----------------|--------|------------------------------------------------|
-| `ssid`          | string | Home WiFi SSID to join                         |
-| `password`      | string | Home WiFi password                             |
-| `mode`          | string | `passive` \| `active` \| `osint`               |
-| `server_url`    | string | Optional enrichment server base URL            |
-| `scan_interval` | number | Seconds of deep sleep between scans (min 30)   |
-| `configured`    | bool   | `false` forces the captive portal              |
-
-## License
-
-No license file is included yet — add one before distributing. Until then, all
-rights reserved by the repository owner.
+Hardware layer: **community-sdk** (`EInkDisplay`, `InputManager`,
+`SDCardManager`) © Open X4 E-Paper Contributors, **MIT** — vendored under `lib/`.
+Display pin map/approach informed by the CrossPoint reader project. Application
+code here is the project owner's; add a top-level LICENSE before distributing.
