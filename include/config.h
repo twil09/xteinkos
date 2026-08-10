@@ -15,7 +15,7 @@
 #define SCREEN_H  792
 #define PANEL_NATIVE_W 792   // physical panel is landscape; canvas is rotated
 #define PANEL_NATIVE_H 528
-#define EPD_ROTATION 1   // 1 or 3 (flip if the image comes out upside-down)
+#define EPD_ROTATION 3   // 1 or 3 (flip if the image comes out upside-down)
 
 // ---- E-ink pins (confirmed X3 wiring; matches CrossPoint HAL) --------------
 #define EPD_SCLK  8
