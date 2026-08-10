@@ -14,7 +14,7 @@ class Hangman : public App {
   int misses_ = 0;
   int cur_ = 0;          // index in the 26-letter grid
   int state_ = 0;        // 0 playing, 1 won, 2 lost
-  static const int COLS = 9, ROWS = 3;  // 27 cells (26 used)
+  static const int COLS = 7, ROWS = 4;  // 28 cells (26 used)
 
   void reset();
   bool revealed(char c) const;

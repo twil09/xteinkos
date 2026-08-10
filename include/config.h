@@ -4,14 +4,18 @@
 #pragma once
 #include <stdint.h>
 
-#define FW_NAME     "xteinkOS"
-#define FW_VERSION  "0.3.0"
+#define FW_NAME     "Vix OS"
+#define FW_VERSION  "0.4.0"
 
-// ---- Display geometry (X3) -------------------------------------------------
-//  Named SCREEN_W/SCREEN_H (not DISPLAY_WIDTH/HEIGHT) to avoid colliding with
-//  EInkDisplay's static constexpr DISPLAY_WIDTH/DISPLAY_HEIGHT members.
-#define SCREEN_W  792
-#define SCREEN_H  528
+// ---- Display geometry (X3 in PORTRAIT) -------------------------------------
+//  Panel is 792x528 native (landscape); we rotate the canvas 90 deg so the UI
+//  is portrait 528x792. Named SCREEN_W/SCREEN_H to avoid colliding with
+//  EInkDisplay's DISPLAY_WIDTH/DISPLAY_HEIGHT members.
+#define SCREEN_W  528
+#define SCREEN_H  792
+#define PANEL_NATIVE_W 792   // physical panel is landscape; canvas is rotated
+#define PANEL_NATIVE_H 528
+#define EPD_ROTATION 1   // 1 or 3 (flip if the image comes out upside-down)
 
 // ---- E-ink pins (confirmed X3 wiring; matches CrossPoint HAL) --------------
 #define EPD_SCLK  8
@@ -47,6 +51,7 @@ static const uint16_t UI_BLACK = 0;  // ink
 // ---- Filesystem paths ------------------------------------------------------
 #define SETTINGS_PATH "/settings.json"
 #define WIFI_PATH     "/wifi.json"
+#define STATS_PATH    "/stats.json"   // reading time + speed + completion
 
 // ---- Button indices (from the SDK InputManager) ----------------------------
 //  ADC ladder 1 -> Back/Confirm/Left/Right, ladder 2 -> Up/Down, plus Power.

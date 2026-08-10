@@ -7,6 +7,7 @@
 class ReaderApp : public App {
  public:
   ReaderApp(const String& path, bool fromSd = false);
+  ~ReaderApp();
   void onEnter() override;
   bool onButton(Btn b) override;
   void render(DuetDisplay& d) override;
@@ -17,6 +18,7 @@ class ReaderApp : public App {
  private:
   String   path_, title_, key_;
   bool     fromSd_ = false;
+  int      fmt_ = 0;  // 0 plain, 1 html, 2 rtf
   BookSource src_;
   uint32_t size_ = 0;
   bool     ok_ = false;
@@ -25,6 +27,9 @@ class ReaderApp : public App {
   int      idx_ = 0;
   uint32_t nextOffset_ = 0;
 
+  uint32_t pageStartMs_ = 0;  // reading-time tracking
+
   void layout(DuetDisplay& d, uint32_t start, std::vector<String>& lines);
   void saveProgress();
+  void flush(int pagesDelta);
 };

@@ -23,6 +23,8 @@ class AppManager {
   uint32_t idleMs() const { return millis() - lastInput_; }
   bool keepAwake() { return stack_.back()->keepAwake(); }
   void noteActivity() { lastInput_ = millis(); }
+  void requestSleep() { sleepRequested_ = true; }
+  bool consumeSleep() { bool s = sleepRequested_; sleepRequested_ = false; return s; }
 
  private:
   std::vector<App*> stack_;
@@ -32,4 +34,5 @@ class AppManager {
   bool fullNext_ = true;
   uint32_t lastTick_ = 0;
   uint32_t lastInput_ = 0;
+  bool sleepRequested_ = false;
 };

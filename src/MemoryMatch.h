@@ -4,7 +4,7 @@
 
 class MemoryMatch : public App {
  public:
-  static const int COLS = 6, ROWS = 4, N = COLS * ROWS;  // 12 pairs
+  static const int COLS = 4, ROWS = 6, N = COLS * ROWS;  // 12 pairs
   void onEnter() override { reset(); }
   bool onButton(Btn b) override;
   void render(DuetDisplay& d) override;

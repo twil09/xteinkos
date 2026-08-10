@@ -10,8 +10,8 @@ class DuetDisplay {
   void begin();
 
   GFXcanvas1& gfx() { return canvas_; }
-  int width() const { return SCREEN_W; }
-  int height() const { return SCREEN_H; }
+  int width() { return canvas_.width(); }    // rotated (portrait) dims
+  int height() { return canvas_.height(); }
 
   void clear() { canvas_.fillScreen(UI_WHITE); }
   void present(EInkDisplay::RefreshMode mode = EInkDisplay::FAST_REFRESH);

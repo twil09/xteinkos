@@ -79,10 +79,11 @@ void Hangman::render(DuetDisplay& d) {
     shown += show ? ch : '_';
     shown += ' ';
   }
-  duet::centerText(g, SCREEN_W / 2 + 60, UI_HEADER_H + 70, FONT_LARGE, shown, UI_BLACK);
+  duet::centerText(g, SCREEN_W / 2, UI_HEADER_H + 210, FONT_MED,
+                   duet::fit(g, FONT_MED, shown, SCREEN_W - 24), UI_BLACK);
 
   // Letter grid.
-  const int cw = 74, ch = 46, gxr = (SCREEN_W - COLS * cw) / 2, gyr = 320;
+  const int cw = 72, ch = 48, gxr = (SCREEN_W - COLS * cw) / 2, gyr = UI_HEADER_H + 250;
   for (int i = 0; i < 26; ++i) {
     int r = i / COLS, c = i % COLS;
     int x = gxr + c * cw, y = gyr + r * ch;

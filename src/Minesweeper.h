@@ -4,7 +4,7 @@
 
 class Minesweeper : public App {
  public:
-  static const int COLS = 12, ROWS = 8, MINES = 12;
+  static const int COLS = 10, ROWS = 13, MINES = 18;
   void onEnter() override { reset(); }
   bool onButton(Btn b) override;
   void render(DuetDisplay& d) override;

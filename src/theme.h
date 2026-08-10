@@ -56,6 +56,47 @@ inline void footerHint(GFXcanvas1& g, const String& hint) {
        fit(g, FONT_BODY, hint, SCREEN_W - 2 * UI_MARGIN), UI_BLACK);
 }
 
+// Header bar with an optional right-aligned status (battery/wifi/etc).
+inline void headerBar(GFXcanvas1& g, const String& title, const String& right) {
+  g.fillRect(0, 0, SCREEN_W, UI_HEADER_H, UI_BLACK);
+  text(g, UI_MARGIN, (UI_HEADER_H + 17) / 2 + 3, FONT_LARGE, title, UI_WHITE);
+  if (right.length()) {
+    int w = textWidth(g, FONT_BODY, right);
+    text(g, SCREEN_W - UI_MARGIN - w, (UI_HEADER_H) / 2 + 6, FONT_BODY, right, UI_WHITE);
+  }
+}
+
+// biscuit-style bottom control bar: 4 labelled buttons (empty = skip).
+inline void buttonBar(GFXcanvas1& g, const char* a, const char* b,
+                      const char* c, const char* d) {
+  int y = SCREEN_H - UI_FOOTER_H;
+  g.drawFastHLine(0, y, SCREEN_W, UI_BLACK);
+  const char* labels[4] = {a, b, c, d};
+  int bw = SCREEN_W / 4;
+  for (int i = 0; i < 4; ++i) {
+    if (!labels[i] || !labels[i][0]) continue;
+    int x = i * bw;
+    g.drawRoundRect(x + 6, y + 5, bw - 12, UI_FOOTER_H - 9, 4, UI_BLACK);
+    centerText(g, x + bw / 2, y + UI_FOOTER_H / 2 + 6, FONT_BODY, labels[i], UI_BLACK);
+  }
+}
+
+// A home section tile (biscuit style): title, subtitle, corner count.
+inline void tile(GFXcanvas1& g, int x, int y, int w, int h, const String& title,
+                 const String& sub, const String& count, bool selected) {
+  uint16_t bg = selected ? UI_BLACK : UI_WHITE;
+  uint16_t fg = selected ? UI_WHITE : UI_BLACK;
+  g.fillRect(x, y, w, h, bg);
+  g.drawRect(x, y, w, h, UI_BLACK);
+  text(g, x + 16, y + 32, FONT_MED, fit(g, FONT_MED, title, w - 32), fg);
+  if (sub.length())
+    text(g, x + 16, y + 56, FONT_BODY, fit(g, FONT_BODY, sub, w - 32), fg);
+  if (count.length()) {
+    int cw = textWidth(g, FONT_BODY, count);
+    text(g, x + w - 16 - cw, y + h - 14, FONT_BODY, count, fg);
+  }
+}
+
 // A selectable row: filled black w/ white text when selected, else outlined.
 inline void listRow(GFXcanvas1& g, int x, int y, int w, int h,
                     const String& label, bool selected) {

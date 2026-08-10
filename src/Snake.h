@@ -5,7 +5,7 @@
 
 class Snake : public App {
  public:
-  static const int COLS = 33, ROWS = 18;
+  static const int COLS = 21, ROWS = 28;
   void onEnter() override { reset(); }
   bool onButton(Btn b) override;
   bool onTick() override;

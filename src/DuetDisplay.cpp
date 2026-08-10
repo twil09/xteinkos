@@ -2,11 +2,12 @@
 
 DuetDisplay::DuetDisplay()
     : eink_(EPD_SCLK, EPD_MOSI, EPD_CS, EPD_DC, EPD_RST, EPD_BUSY),
-      canvas_(SCREEN_W, SCREEN_H) {}
+      canvas_(PANEL_NATIVE_W, PANEL_NATIVE_H) {}  // native landscape buffer
 
 void DuetDisplay::begin() {
-  eink_.setDisplayX3();  // 792x528 geometry + X3 waveforms
-  eink_.begin();         // inits SPI (pins from ctor) + panel
+  eink_.setDisplayX3();       // 792x528 native geometry + X3 waveforms
+  eink_.begin();              // inits SPI (pins from ctor) + panel
+  canvas_.setRotation(EPD_ROTATION);  // draw in portrait 528x792
   clear();
 }
 
