@@ -5,68 +5,71 @@
 > the first boot may show a blank or upside-down screen (fixable, see
 > [Troubleshooting](#troubleshooting)). The ESP32-C3 is **not permanently
 > brickable**: you can always re-enter download mode and re-flash or restore a
-> backup. Flashing **overwrites the stock X3 firmware and bootloader** — back it
-> up first.
+> backup. Flashing **overwrites the stock X3 firmware** — back it up first.
+
+The Xteink X3 has **16 MB** flash. Images here use a CrossPoint-compatible
+partition table (`partitions.csv`): app0 at `0x10000` (6.25 MB), LittleFS
+"spiffs" at `0xc90000` (3.375 MB). Chip: **ESP32-C3**, flash mode **DIO**.
 
 ## Prebuilt images
 
-Build artifacts are not committed to git. Get them from the
-[GitHub Releases](../../releases) page, or build them yourself (below).
+In [`firmware/`](firmware/) (also on the GitHub Releases page if one is cut):
 
 | File | Contents | Flash offset |
 |------|----------|-------------|
-| `xteinkos-x3-full.bin` | Everything: bootloader + partition table + boot_app0 + firmware + seeded config filesystem | **`0x0`** |
-| `xteinkos-x3-app.bin` | Firmware (application) only | `0x10000` |
-| `xteinkos-x3-littlefs.bin` | Config filesystem only (seeds the first-boot portal) | `0x310000` |
+| `xteinkos-x3-app.bin` | Firmware application image | `0x10000` |
+| `xteinkos-x3-bootloader.bin` | Second-stage bootloader | `0x0` |
+| `xteinkos-x3-partitions.bin` | Partition table | `0x8000` |
+| `xteinkos-x3-littlefs.bin` | Config/logs filesystem (optional — the app formats it on first boot if absent) | `0xc90000` |
 
-Image assumptions: **4 MB flash, DIO mode, 80 MHz**. If your unit differs,
-rebuild (see below) or adjust the flash args.
+## Option A — CrossPoint web flasher (recommended)
+
+The CrossPoint web flasher (`crosspointreader.com/#flash-tools`) writes its own
+bootloader + partition table and takes a single **application image** for the
+custom option:
+
+1. Open the flasher, connect the X3 over USB (WebSerial).
+2. Select your model (**X3**) and choose the **"Custom .bin"** option.
+3. Select **`firmware/xteinkos-x3-app.bin`** and flash.
+4. Reset. You should see **"Waiting for config"**.
+
+`xteinkos-x3-app.bin` is a plain ESP32-C3 application image (starts with `0xE9`,
+declared size == file size), which is exactly what that flasher validates — so
+it will **not** show the "declared size does not match file size" error you get
+from a merged full-flash image.
+
+> The custom option does not write the filesystem; that's fine — the app formats
+> its LittleFS partition on first boot and comes up in the setup portal.
+
+## Option B — esptool over USB (full, explicit)
+
+Put the device in download mode (hold **BOOT**, tap **RESET**/replug, release
+BOOT), then:
+
+```bash
+esptool --chip esp32c3 --baud 921600 write_flash \
+  0x0      firmware/xteinkos-x3-bootloader.bin \
+  0x8000   firmware/xteinkos-x3-partitions.bin \
+  0x10000  firmware/xteinkos-x3-app.bin \
+  0xc90000 firmware/xteinkos-x3-littlefs.bin
+```
+
+Flash app only (keeps existing bootloader/partitions):
+
+```bash
+esptool --chip esp32c3 --baud 921600 write_flash 0x10000 firmware/xteinkos-x3-app.bin
+```
 
 ## Step 0 — back up the stock firmware (recommended)
 
-Put the device in download mode (hold **BOOT**, tap **RESET**/replug, release
-BOOT) and read the whole flash so you can always restore it:
-
 ```bash
-esptool --chip esp32c3 --baud 921600 read_flash 0x0 0x400000 x3-stock-backup.bin
+esptool --chip esp32c3 --baud 921600 read_flash 0x0 0x1000000 x3-stock-backup.bin
 ```
 
 Restore later with:
 
 ```bash
 esptool --chip esp32c3 --baud 921600 write_flash 0x0 x3-stock-backup.bin
-```
-
-## Option A — web flasher (easiest)
-
-Most ESP web flashers (ESP Web Tools / esptool-js based, incl. community X3
-flashers) take a **single merged image written at `0x0`**:
-
-1. Connect the X3 over USB; put it in download mode if the flasher asks.
-2. Select **`xteinkos-x3-full.bin`** and set the offset to **`0x0`**
-   (single-file flashers assume `0x0` automatically).
-3. Flash, then reset. You should see **"Waiting for config"**.
-
-If the flasher instead shows separate slots/offsets, use the three files at the
-offsets in the table above. If it only writes an application image, use
-`xteinkos-x3-app.bin` at `0x10000` (this keeps whatever bootloader/partition
-table is already on the device — only works if it matches this layout).
-
-## Option B — esptool over USB
-
-Full image in one shot:
-
-```bash
-esptool --chip esp32c3 --baud 921600 write_flash 0x0 xteinkos-x3-full.bin
-```
-
-Or the parts individually:
-
-```bash
-esptool --chip esp32c3 --baud 921600 write_flash \
-  0x10000  xteinkos-x3-app.bin \
-  0x310000 xteinkos-x3-littlefs.bin
-# (bootloader.bin @ 0x0 and partitions.bin @ 0x8000 if replacing those too)
 ```
 
 ## Option C — build + flash from source (PlatformIO)
@@ -76,19 +79,6 @@ pio run                 # compile
 pio run -t upload       # flash firmware over USB
 pio run -t uploadfs     # flash the LittleFS image (config + optional data files)
 pio device monitor      # serial log @ 115200
-```
-
-To regenerate the merged image yourself:
-
-```bash
-BOOT_APP0=$(python -c "import os,glob;print(glob.glob(os.path.expanduser('~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin'))[0])")
-python -m esptool --chip esp32c3 merge-bin -o xteinkos-x3-full.bin \
-  --flash-mode dio --flash-freq 80m --flash-size 4MB \
-  0x0 .pio/build/x3/bootloader.bin \
-  0x8000 .pio/build/x3/partitions.bin \
-  0xe000 "$BOOT_APP0" \
-  0x10000 .pio/build/x3/firmware.bin \
-  0x310000 .pio/build/x3/littlefs.bin
 ```
 
 ## First boot
@@ -105,9 +95,9 @@ See [`docs/USAGE.md`](docs/USAGE.md) for controls and day-to-day use.
 
 | Symptom | Fix |
 |---------|-----|
-| Blank / garbled screen | Most likely the display driver needs a hardware tweak — see the tuning notes atop `lib/GxEPD2_X3/GxEPD2_368_X3.h` (gate reversal / border byte), rebuild, re-flash. Confirm SPI pins in `include/display_config.h`. |
+| "declared size … does not match file size" | You used a merged full-flash image. Use the single app image `xteinkos-x3-app.bin`. |
+| Blank / garbled screen | Display driver likely needs a hardware tweak — see the tuning notes atop `lib/GxEPD2_X3/GxEPD2_368_X3.h` (gate reversal / border byte), rebuild, re-flash. Confirm SPI pins in `include/display_config.h`. |
 | Image upside-down / offset | Flip the `y = HEIGHT - y - h` reversal in `_setPartialRamArea` and the `0x11` data-entry byte. |
 | Won't flash / not detected | Enter download mode: hold **BOOT**, tap **RESET** (or replug USB), release BOOT. Try a lower `--baud` (e.g. 115200). |
 | Buttons wrong / unresponsive | ADC centers vary slightly per unit — widen `ADC_TOLERANCE` in `include/config.h`, or recalibrate the values there. |
-| Wrong flash size error | Your unit may not be 4 MB — rebuild with the right `board_upload.flash_size` / partition table. |
 | Bricked? | It isn't — restore your backup: `esptool --chip esp32c3 write_flash 0x0 x3-stock-backup.bin`. |

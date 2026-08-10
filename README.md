@@ -123,10 +123,12 @@ pio device monitor
 
 Don't want to build from source? Ready-to-flash binaries live in
 [`firmware/`](firmware/), and [`FLASHING.md`](FLASHING.md) has the full guide
-(web flasher, esptool, offsets, stock-firmware backup, troubleshooting). Short
-version: flash **`firmware/xteinkos-x3-full.bin`** at offset **`0x0`** with a web
-or serial flasher. These images are **untested on real hardware** — read the
-notes in `FLASHING.md` first.
+(CrossPoint web flasher, esptool, offsets, stock-firmware backup,
+troubleshooting). Short version: in the **CrossPoint web flasher**, pick
+**"Custom .bin"** and select **`firmware/xteinkos-x3-app.bin`** (a plain
+ESP32-C3 app image — do *not* use a merged full-flash image, which the flasher
+rejects with a "declared size" error). The X3 has **16 MB** flash. These images
+are **untested on real hardware** — read the notes in `FLASHING.md` first.
 
 ## First run
 
