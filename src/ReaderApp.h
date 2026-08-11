@@ -18,7 +18,7 @@ class ReaderApp : public App {
   }
 
  private:
-  enum class RMode { Reading, Menu, Fonts, Bookmarks };
+  enum class RMode { Reading, Menu, Fonts, Bookmarks, WordSel, Define };
 
   String   path_, title_, key_, err_;
   bool     fromSd_ = false;
@@ -39,6 +39,11 @@ class ReaderApp : public App {
   int      menuSel_ = 0, fontSel_ = 0, bmSel_ = 0;
   std::vector<Bookmark> bms_;
 
+  std::vector<String> pageLines_;   // last rendered page (for word lookup)
+  int      wordSel_ = 0, wordCount_ = 0;
+  String   selWordText_, defWord_, defText_;
+  int      defScroll_ = 0;
+
   void layout(DuetDisplay& d, uint32_t start, std::vector<String>& lines);
   void saveProgress();
   void flush(int pagesDelta);
@@ -51,8 +56,12 @@ class ReaderApp : public App {
   bool onButtonMenu(Btn b);
   bool onButtonFonts(Btn b);
   bool onButtonBookmarks(Btn b);
+  bool onButtonWordSel(Btn b);
+  bool onButtonDefine(Btn b);
   void renderReading(DuetDisplay& d);
   void renderMenu(DuetDisplay& d);
   void renderFonts(DuetDisplay& d);
   void renderBookmarks(DuetDisplay& d);
+  void renderWordSel(DuetDisplay& d);
+  void renderDefine(DuetDisplay& d);
 };

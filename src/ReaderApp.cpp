@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 
+#include "Dict.h"
 #include "Epub.h"
 #include "ProgressStore.h"
 #include "ReaderSettings.h"
@@ -170,6 +171,8 @@ bool ReaderApp::onButton(Btn b) {
     case RMode::Menu:      return onButtonMenu(b);
     case RMode::Fonts:     return onButtonFonts(b);
     case RMode::Bookmarks: return onButtonBookmarks(b);
+    case RMode::WordSel:   return onButtonWordSel(b);
+    case RMode::Define:    return onButtonDefine(b);
   }
   return false;
 }
@@ -186,7 +189,10 @@ bool ReaderApp::onButtonReading(Btn b) {
 }
 
 bool ReaderApp::onButtonMenu(Btn b) {
-  const int rows = 4;
+  const bool dict = Dict::available();
+  const int rows = dict ? 5 : 4;
+  const int lookupIdx = dict ? 3 : -1;
+  const int closeIdx = dict ? 4 : 3;
   switch (b) {
     case Btn::Up:   menuSel_ = (menuSel_ + rows - 1) % rows; return true;
     case Btn::Down: menuSel_ = (menuSel_ + 1) % rows; return true;
@@ -212,7 +218,9 @@ bool ReaderApp::onButtonMenu(Btn b) {
         rmode_ = RMode::Bookmarks;
         return true;
       }
+      if (menuSel_ == lookupIdx) { rmode_ = RMode::WordSel; wordSel_ = 0; return true; }
       rmode_ = RMode::Reading;  // Close
+      (void)closeIdx;
       return true;
     case Btn::Back: rmode_ = RMode::Reading; return true;
     default: return true;  // swallow (stay in menu)
@@ -265,6 +273,8 @@ void ReaderApp::render(DuetDisplay& d) {
     case RMode::Menu:      renderMenu(d); break;
     case RMode::Fonts:     renderFonts(d); break;
     case RMode::Bookmarks: renderBookmarks(d); break;
+    case RMode::WordSel:   renderWordSel(d); break;
+    case RMode::Define:    renderDefine(d); break;
   }
 }
 
@@ -284,6 +294,7 @@ void ReaderApp::renderReading(DuetDisplay& d) {
 
   std::vector<String> lines;
   layout(d, starts_[idx_], lines);
+  pageLines_ = lines;  // remembered for word lookup
   const GFXfont* font = ReaderSettings::font();
   const int m = ReaderSettings::margin();
   const int lineH = ReaderSettings::lineHeight();
@@ -315,7 +326,14 @@ void ReaderApp::renderMenu(DuetDisplay& d) {
                 marked ? "Remove bookmark here" : "Add bookmark here", menuSel_ == 1);
   duet::listRow(g, 0, y + 2 * rowH, SCREEN_W, rowH,
                 String("Bookmarks  (") + n + ")", menuSel_ == 2);
-  duet::listRow(g, 0, y + 3 * rowH, SCREEN_W, rowH, "Close", menuSel_ == 3);
+  bool dict = Dict::available();
+  int row = 3;
+  if (dict) {
+    duet::listRow(g, 0, y + row * rowH, SCREEN_W, rowH,
+                  String("Look up a word  (") + Dict::name() + ")", menuSel_ == row);
+    ++row;
+  }
+  duet::listRow(g, 0, y + row * rowH, SCREEN_W, rowH, "Close", menuSel_ == row);
   duet::buttonBar(g, "Close", "Select", "Up", "Down");
 }
 
@@ -360,4 +378,116 @@ void ReaderApp::renderBookmarks(DuetDisplay& d) {
     y += rowH;
   }
   duet::buttonBar(g, "Back", "Go", "Delete", "Down");
+}
+
+// ---- dictionary word lookup ------------------------------------------------
+
+bool ReaderApp::onButtonWordSel(Btn b) {
+  int n = wordCount_;
+  switch (b) {
+    case Btn::Left:
+    case Btn::Up:    if (n) wordSel_ = (wordSel_ + n - 1) % n; return true;
+    case Btn::Right:
+    case Btn::Down:  if (n) wordSel_ = (wordSel_ + 1) % n; return true;
+    case Btn::Confirm: {
+      String w = selWordText_;
+      int a = 0, z = w.length();
+      while (a < z && !isalnum((unsigned char)w[a])) ++a;
+      while (z > a && !isalnum((unsigned char)w[z - 1])) --z;
+      w = w.substring(a, z);
+      defWord_ = w; defScroll_ = 0;
+      if (!(w.length() && Dict::lookup(w, defText_))) defText_ = "(not found)";
+      rmode_ = RMode::Define;
+      return true;
+    }
+    case Btn::Back: rmode_ = RMode::Reading; return true;
+    default: return true;
+  }
+}
+
+bool ReaderApp::onButtonDefine(Btn b) {
+  switch (b) {
+    case Btn::Down:
+    case Btn::Right: ++defScroll_; return true;
+    case Btn::Up:
+    case Btn::Left:  if (defScroll_ > 0) --defScroll_; return true;
+    default: rmode_ = RMode::WordSel; return true;  // Back/Confirm
+  }
+}
+
+void ReaderApp::renderWordSel(DuetDisplay& d) {
+  auto& g = d.gfx();
+  duet::headerBar(g, "Look up a word", "");
+  const GFXfont* font = ReaderSettings::font();
+  const int m = ReaderSettings::margin();
+  const int lineH = ReaderSettings::lineHeight();
+  const int spaceW = duet::textWidth(g, font, " ");
+
+  int count = 0, selX = -1, selY = 0, selW = 0;
+  String selText;
+  int y = READER_TOP + lineH - 6;
+  for (size_t li = 0; li < pageLines_.size(); ++li) {
+    const String& ln = pageLines_[li];
+    if (ln.length()) duet::text(g, m, y, font, ln, UI_BLACK);
+    int i = 0, x = m;
+    while (i < (int)ln.length()) {
+      while (i < (int)ln.length() && ln[i] == ' ') { x += spaceW; ++i; }
+      int start = i;
+      while (i < (int)ln.length() && ln[i] != ' ') ++i;
+      if (i > start) {
+        String w = ln.substring(start, i);
+        int ww = duet::textWidth(g, font, w);
+        if (count == wordSel_) { selX = x; selY = y; selW = ww; selText = w; }
+        x += ww;
+        ++count;
+      }
+    }
+    y += lineH;
+  }
+  wordCount_ = count;
+  if (count > 0 && wordSel_ >= count) wordSel_ = count - 1;
+  if (selX >= 0) {
+    int by = selY - (int)(lineH * 0.72), bh = lineH - 4;
+    g.fillRect(selX - 2, by, selW + 4, bh, UI_BLACK);
+    duet::text(g, selX, selY, font, selText, UI_WHITE);
+    selWordText_ = selText;
+  }
+  duet::buttonBar(g, "Back", "Define", "Prev", "Next");
+}
+
+void ReaderApp::renderDefine(DuetDisplay& d) {
+  auto& g = d.gfx();
+  duet::headerBar(g, defWord_.length() ? defWord_ : String("Definition"), "");
+  const GFXfont* font = FONT_BODY;
+  const int textW = SCREEN_W - 2 * UI_MARGIN;
+  const int lineH = 24;
+  const int top = UI_HEADER_H + 16;
+  const int maxLines = (SCREEN_H - UI_FOOTER_H - top) / lineH;
+
+  // word-wrap defText_ (honoring embedded newlines)
+  std::vector<String> lines;
+  String cur;
+  auto flush = [&]() { lines.push_back(cur); cur = ""; };
+  int i = 0, n = defText_.length();
+  while (i < n) {
+    char c = defText_[i++];
+    if (c == '\r') continue;
+    if (c == '\n') { flush(); continue; }
+    if (c == ' ') { if (cur.length() && cur[cur.length() - 1] != ' ') cur += ' '; continue; }
+    String cand = cur + c;
+    if (duet::textWidth(g, font, cand) <= textW) cur = cand;
+    else { flush(); cur = String(c); }
+  }
+  if (cur.length()) flush();
+
+  int maxScroll = (int)lines.size() - maxLines; if (maxScroll < 0) maxScroll = 0;
+  if (defScroll_ > maxScroll) defScroll_ = maxScroll;
+
+  int y = top + lineH - 6;
+  for (int k = defScroll_; k < (int)lines.size() && k < defScroll_ + maxLines; ++k) {
+    duet::text(g, UI_MARGIN, y, font, lines[k], UI_BLACK);
+    y += lineH;
+  }
+  bool more = (defScroll_ + maxLines) < (int)lines.size();
+  duet::buttonBar(g, "Back", "", "Up", more ? "More" : "Down");
 }
