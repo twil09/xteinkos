@@ -319,15 +319,33 @@ void HomeActivity::render(RenderLock&&) {
     menuIcons.insert(menuIcons.begin(), Book);
   }
 
-  GUI.drawButtonMenu(
-      renderer,
-      Rect{0, metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.homeMenuTopOffset, pageWidth,
-           pageHeight - (metrics.headerHeight + metrics.homeTopPadding + metrics.verticalSpacing +
-                         metrics.homeMenuTopOffset + metrics.buttonHintsHeight)},
-      static_cast<int>(menuItems.size()),
-      metrics.homeContinueReadingInMenu ? selectorIndex : selectorIndex - recentBooks.size(),
-      [&menuItems](int index) { return std::string(menuItems[index]); },
-      [&menuIcons](int index) { return menuIcons[index]; });
+  // --- Vix 2x2 tile grid (replaces the vertical menu; carousel stays above) ---
+  const int selIndex =
+      metrics.homeContinueReadingInMenu ? selectorIndex : selectorIndex - static_cast<int>(recentBooks.size());
+  const int count = static_cast<int>(menuItems.size());
+  const int gridTop = metrics.homeTopPadding + metrics.homeCoverTileHeight + metrics.homeMenuTopOffset;
+  const int gridBottom = pageHeight - metrics.buttonHintsHeight - metrics.verticalSpacing;
+  const int cols = 2;
+  const int rows = (count + cols - 1) / cols;
+  const int gap = 12;
+  const int sideMargin = 16;
+  const int tileW = (pageWidth - 2 * sideMargin - (cols - 1) * gap) / cols;
+  int tileH = rows > 0 ? (gridBottom - gridTop - (rows - 1) * gap) / rows : 0;
+  if (tileH > 150) tileH = 150;  // keep tiles from getting absurdly tall
+  const int fontId = UI_12_FONT_ID;
+  for (int i = 0; i < count; ++i) {
+    const int r = i / cols, c = i % cols;
+    const int x = sideMargin + c * (tileW + gap);
+    const int y = gridTop + r * (tileH + gap);
+    const bool sel = (i == selIndex);
+    if (sel)
+      renderer.fillRoundedRect(x, y, tileW, tileH, 12, Color::Black);
+    else
+      renderer.drawRoundedRect(x, y, tileW, tileH, 2, 12, true);
+    const std::string label = renderer.truncatedText(fontId, menuItems[i], tileW - 20, EpdFontFamily::BOLD);
+    const int tw = renderer.getTextWidth(fontId, label.c_str(), EpdFontFamily::BOLD);
+    renderer.drawText(fontId, x + (tileW - tw) / 2, y + tileH / 2 + 7, label.c_str(), !sel, EpdFontFamily::BOLD);
+  }
 
   const auto labels = mappedInput.mapLabels(recentBooks.empty() ? "" : tr(STR_RESUME), tr(STR_SELECT), tr(STR_DIR_UP),
                                             tr(STR_DIR_DOWN));
