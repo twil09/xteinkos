@@ -43,6 +43,8 @@ class ReaderApp : public App {
   int      wordSel_ = 0, wordCount_ = 0;
   String   selWordText_, defWord_, defText_;
   int      defScroll_ = 0;
+  RMode    defineReturn_ = RMode::WordSel;  // where Back goes from Define
+  std::vector<int> menuActions() const;     // ordered action codes for the menu
 
   void layout(DuetDisplay& d, uint32_t start, std::vector<String>& lines);
   void saveProgress();

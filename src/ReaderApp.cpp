@@ -4,10 +4,15 @@
 
 #include "Dict.h"
 #include "Epub.h"
+#include "KoSync.h"
+#include "KoSyncStore.h"
 #include "ProgressStore.h"
 #include "ReaderSettings.h"
 #include "Stats.h"
 #include "theme.h"
+
+// Reader-menu action codes.
+enum { A_FONTS = 0, A_BMTOGGLE, A_BOOKMARKS, A_LOOKUP, A_SYNC, A_CLOSE };
 
 #define READER_TOP    (UI_HEADER_H + 16)
 #define READER_DWELL_CAP 180000UL  // cap per-page dwell at 3 min (idle guard)
@@ -188,42 +193,58 @@ bool ReaderApp::onButtonReading(Btn b) {
   }
 }
 
+std::vector<int> ReaderApp::menuActions() const {
+  std::vector<int> a = {A_FONTS, A_BMTOGGLE, A_BOOKMARKS};
+  if (Dict::available()) a.push_back(A_LOOKUP);
+  if (KoSyncStore::has()) a.push_back(A_SYNC);
+  a.push_back(A_CLOSE);
+  return a;
+}
+
 bool ReaderApp::onButtonMenu(Btn b) {
-  const bool dict = Dict::available();
-  const int rows = dict ? 5 : 4;
-  const int lookupIdx = dict ? 3 : -1;
-  const int closeIdx = dict ? 4 : 3;
+  std::vector<int> acts = menuActions();
+  int rows = (int)acts.size();
+  if (menuSel_ >= rows) menuSel_ = rows - 1;
   switch (b) {
     case Btn::Up:   menuSel_ = (menuSel_ + rows - 1) % rows; return true;
     case Btn::Down: menuSel_ = (menuSel_ + 1) % rows; return true;
-    case Btn::Confirm:
-      if (menuSel_ == 0) { rmode_ = RMode::Fonts; fontSel_ = 0; return true; }
-      if (menuSel_ == 1) {  // add / remove bookmark at current page
-        uint32_t cur = starts_[idx_];
-        if (BookmarkStore::hasAt(key_, cur)) {
-          auto v = BookmarkStore::list(key_);
-          for (int i = 0; i < (int)v.size(); ++i)
-            if (labs((long)v[i].offset - (long)cur) < 200) { BookmarkStore::removeAt(key_, i); break; }
-        } else {
-          String sum = firstLine_;
-          if (sum.length() > 42) sum = sum.substring(0, 42);
-          BookmarkStore::add(key_, cur, sum);
+    case Btn::Confirm: {
+      switch (acts[menuSel_]) {
+        case A_FONTS: rmode_ = RMode::Fonts; fontSel_ = 0; break;
+        case A_BMTOGGLE: {
+          uint32_t cur = starts_[idx_];
+          if (BookmarkStore::hasAt(key_, cur)) {
+            auto v = BookmarkStore::list(key_);
+            for (int i = 0; i < (int)v.size(); ++i)
+              if (labs((long)v[i].offset - (long)cur) < 200) { BookmarkStore::removeAt(key_, i); break; }
+          } else {
+            String sum = firstLine_;
+            if (sum.length() > 42) sum = sum.substring(0, 42);
+            BookmarkStore::add(key_, cur, sum);
+          }
+          rmode_ = RMode::Reading;
+          break;
         }
-        rmode_ = RMode::Reading;
-        return true;
+        case A_BOOKMARKS: bms_ = BookmarkStore::list(key_); bmSel_ = 0; rmode_ = RMode::Bookmarks; break;
+        case A_LOOKUP: rmode_ = RMode::WordSel; wordSel_ = 0; break;
+        case A_SYNC: {
+          float pct = size_ ? (float)starts_[idx_] / (float)size_ : 0;
+          KoSync::Result res = KoSync::sync(KoSync::docHash(path_, fromSd_), pct, title_);
+          if (res.ok && res.haveRemote && res.remotePct > pct + 0.01f)
+            jumpTo((uint32_t)(res.remotePct * size_));
+          defWord_ = "Progress sync";
+          defText_ = res.msg;
+          defScroll_ = 0;
+          defineReturn_ = RMode::Reading;
+          rmode_ = RMode::Define;
+          break;
+        }
+        default: rmode_ = RMode::Reading; break;  // Close
       }
-      if (menuSel_ == 2) {
-        bms_ = BookmarkStore::list(key_);
-        bmSel_ = 0;
-        rmode_ = RMode::Bookmarks;
-        return true;
-      }
-      if (menuSel_ == lookupIdx) { rmode_ = RMode::WordSel; wordSel_ = 0; return true; }
-      rmode_ = RMode::Reading;  // Close
-      (void)closeIdx;
       return true;
+    }
     case Btn::Back: rmode_ = RMode::Reading; return true;
-    default: return true;  // swallow (stay in menu)
+    default: return true;
   }
 }
 
@@ -316,24 +337,25 @@ void ReaderApp::renderMenu(DuetDisplay& d) {
   duet::headerBar(g, "Reading menu", "");
   uint32_t cur = starts_[idx_];
   bool marked = BookmarkStore::hasAt(key_, cur);
-  int n = (int)BookmarkStore::list(key_).size();
-  const int rowH = 74;
-  int y = UI_HEADER_H + 20;
-  String f = String("Fonts & layout   (") + ReaderSettings::familyName() + " " +
-             ReaderSettings::sizeName() + ")";
-  duet::listRow(g, 0, y, SCREEN_W, rowH, f, menuSel_ == 0);
-  duet::listRow(g, 0, y + rowH, SCREEN_W, rowH,
-                marked ? "Remove bookmark here" : "Add bookmark here", menuSel_ == 1);
-  duet::listRow(g, 0, y + 2 * rowH, SCREEN_W, rowH,
-                String("Bookmarks  (") + n + ")", menuSel_ == 2);
-  bool dict = Dict::available();
-  int row = 3;
-  if (dict) {
-    duet::listRow(g, 0, y + row * rowH, SCREEN_W, rowH,
-                  String("Look up a word  (") + Dict::name() + ")", menuSel_ == row);
-    ++row;
+  int nbm = (int)BookmarkStore::list(key_).size();
+  std::vector<int> acts = menuActions();
+  if (menuSel_ >= (int)acts.size()) menuSel_ = acts.size() - 1;
+
+  const int rowH = 66;
+  int y = UI_HEADER_H + 18;
+  for (int i = 0; i < (int)acts.size(); ++i) {
+    String label;
+    switch (acts[i]) {
+      case A_FONTS: label = String("Fonts & layout   (") + ReaderSettings::familyName() +
+                            " " + ReaderSettings::sizeName() + ")"; break;
+      case A_BMTOGGLE: label = marked ? "Remove bookmark here" : "Add bookmark here"; break;
+      case A_BOOKMARKS: label = String("Bookmarks  (") + nbm + ")"; break;
+      case A_LOOKUP: label = String("Look up a word  (") + Dict::name() + ")"; break;
+      case A_SYNC: label = "Sync progress (KOReader)"; break;
+      default: label = "Close"; break;
+    }
+    duet::listRow(g, 0, y + i * rowH, SCREEN_W, rowH, label, menuSel_ == i);
   }
-  duet::listRow(g, 0, y + row * rowH, SCREEN_W, rowH, "Close", menuSel_ == row);
   duet::buttonBar(g, "Close", "Select", "Up", "Down");
 }
 
@@ -397,6 +419,7 @@ bool ReaderApp::onButtonWordSel(Btn b) {
       w = w.substring(a, z);
       defWord_ = w; defScroll_ = 0;
       if (!(w.length() && Dict::lookup(w, defText_))) defText_ = "(not found)";
+      defineReturn_ = RMode::WordSel;
       rmode_ = RMode::Define;
       return true;
     }
@@ -411,7 +434,7 @@ bool ReaderApp::onButtonDefine(Btn b) {
     case Btn::Right: ++defScroll_; return true;
     case Btn::Up:
     case Btn::Left:  if (defScroll_ > 0) --defScroll_; return true;
-    default: rmode_ = RMode::WordSel; return true;  // Back/Confirm
+    default: rmode_ = defineReturn_; return true;  // Back/Confirm
   }
 }
 

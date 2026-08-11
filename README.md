@@ -43,8 +43,17 @@ one cached plain-text file, which the normal paginator renders. Re-opening the
 same book is instant (cached).
 
 **Fonts & layout:** press **Select** in a book to open the menu → **Fonts &
-layout**: Sans/Serif family, four text sizes, three line-spacings, three margin
-widths — applied live and remembered.
+layout**: Sans/Serif/Mono family, four text sizes, three line-spacings, three
+margin widths — applied live and remembered.
+
+**Dictionary:** put an uncompressed StarDict (`<stem>.ifo/.idx/.dict`) in
+`/dict` on the SD card, then the in-book menu gains **Look up a word** — step
+through the words on the page and get a scrollable definition (StarDict `.idx`
+scan; `.dict.dz` not supported).
+
+**Sync:** the in-book menu gains **Sync progress** when a KOReader sync server
+is configured (set it on the phone page) — it uploads your position and, if the
+server is further along, jumps to it. Uses KOReader's partial-MD5 document id.
 
 **Bookmarks:** the in-book menu adds/removes a bookmark at the current page and
 lists them to jump back; a corner mark shows on bookmarked pages. Bookmarks are
@@ -57,9 +66,14 @@ from a phone via an open **`Vix-Setup`** captive portal (scan the on-screen QR).
 Once on your home network, **Wi-Fi → Transfer files** starts a web page at
 **`http://vix.local/`** (a QR shows the IP for phones that can't resolve
 `.local`) where you can **upload/download/delete** books and images — books land
-in the Library, images in Images, sorted by file type. Time is set over **NTP**
-when connected (adjust your zone in **Settings → Time zone**); the RTC keeps it
-through naps.
+in the Library, images in Images, sorted by file type. That page also configures
+**OPDS catalogs** and the **KOReader sync** server (no on-device keyboard). Time
+is set over **NTP** when connected (adjust your zone in **Settings → Time
+zone**); the RTC keeps it through naps.
+
+**Download books (OPDS):** **Books → Download books** browses saved OPDS
+catalogs (seeded with Standard Ebooks + Project Gutenberg) and downloads EPUBs
+straight to the Library.
 
 ## Reading stats
 
@@ -111,6 +125,9 @@ src/
   GamesApp.* <game>.*  Games folder + one App per game
   Epub.*               EPUB -> cached plain text (zip + inflate + tag strip)
   ReaderApp.* ReaderSettings.* BookmarkStore.*  Reader, fonts/layout, bookmarks
+  Dict.*               StarDict (.ifo/.idx/.dict) word lookup
+  Opds.* OpdsStore.* OpdsApp.*  OPDS catalog browse + EPUB download
+  KoSync.* KoSyncStore.*        KOReader progress sync (partial-MD5 doc id)
   FilesApp.* LibraryApp.* BookSource.* ProgressStore.* Stats.*
   WiFiApp.* WifiStore.* QrApp.* QrView.h  SettingsApp.*
 ```
@@ -121,13 +138,16 @@ src/
   rotated canvas). ~20% flash, ~30% RAM.
 - **Hardware-tested:** boots and flashes on the X3; portrait orientation
   confirmed. Battery gauge uses the X3 board profile (ADC GPIO0, ×2.0 divider).
-- **Staged:** EPUB/PDF/MOBI/CBZ/CBR rendering, JPEG/PNG decoding to e-ink, and
-  live device-to-device stat sharing — recognised/entry-pointed now.
+- **Staged:** PDF/MOBI/CBZ/CBR rendering and JPEG/PNG decoding to e-ink
+  (recognised/entry-pointed now). EPUB text renders; images/footnotes inside
+  EPUBs are dropped for now.
 
 ## Credits & license
 
 Hardware layer © Open X4 E-Paper Contributors (**MIT**), vendored under `lib/`.
-EPUB/bookmark/font approach and the `miniz` build (with its ROM-symbol renames)
-are adapted from **CrossPoint Reader** © Dave Allie (**MIT**); `miniz` © Rich
-Geldreich et al. (MIT/public domain). Pin map informed by CrossPoint/FreeInk.
-App code is the project owner's — add a top-level LICENSE before distributing.
+The EPUB/bookmark/font/dictionary/OPDS/KOSync approaches and the `miniz` build
+(with its ROM-symbol renames) are adapted from **CrossPoint Reader** © Dave
+Allie (**MIT**); `miniz` © Rich Geldreich et al. (MIT/public domain). KOReader
+sync protocol/document-id and the StarDict format are community standards. Pin
+map informed by CrossPoint/FreeInk. App code is the project owner's — add a
+top-level LICENSE before distributing.

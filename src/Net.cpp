@@ -6,6 +6,8 @@
 #include <WiFi.h>
 
 #include "Clock.h"
+#include "KoSyncStore.h"
+#include "OpdsStore.h"
 #include "WifiStore.h"
 #include "config.h"
 
@@ -101,6 +103,29 @@ void handleRoot() {
   h += "</ul></div><div class=card><b>Images</b><ul>";
   listDir(h, kImageDir);
   h += "</ul></div>";
+
+  // OPDS catalog servers
+  h += "<div class=card><b>OPDS catalogs</b><ul>";
+  {
+    auto servers = OpdsStore::list();
+    for (size_t i = 0; i < servers.size(); ++i)
+      h += "<li><span>" + htmlEscape(servers[i].name) + "</span>"
+           "<a class=del href=\"/opdsdel?i=" + String((int)i) + "\">delete</a></li>";
+  }
+  h += "</ul><form method=GET action=\"/opdsadd\">"
+       "<input name=name placeholder=\"Name\"> <input name=url placeholder=\"https://.../opds\">"
+       "<button type=submit>Add catalog</button></form></div>";
+
+  // KOReader sync
+  h += "<div class=card><b>KOReader sync</b>";
+  if (KoSyncStore::has())
+    h += "<small>Configured: " + htmlEscape(KoSyncStore::user()) + " @ " +
+         htmlEscape(KoSyncStore::url()) + "</small>";
+  h += "<form method=GET action=\"/kosync\">"
+       "<input name=url placeholder=\"https://sync.server\"> "
+       "<input name=user placeholder=\"username\"> "
+       "<input name=pwd type=password placeholder=\"password\">"
+       "<button type=submit>Save sync server</button></form></div>";
 
   h += "</div></body></html>";
   server.send(200, "text/html", h);
@@ -201,6 +226,21 @@ void startFileServer() {
   }, handleUpload);
   server.on("/dl", HTTP_GET, handleDownload);
   server.on("/rm", HTTP_GET, handleDelete);
+  server.on("/opdsadd", HTTP_GET, []() {
+    OpdsStore::add(server.arg("name"), server.arg("url"));
+    server.sendHeader("Location", "/");
+    server.send(303, "text/plain", "");
+  });
+  server.on("/opdsdel", HTTP_GET, []() {
+    OpdsStore::removeAt(server.arg("i").toInt());
+    server.sendHeader("Location", "/");
+    server.send(303, "text/plain", "");
+  });
+  server.on("/kosync", HTTP_GET, []() {
+    KoSyncStore::save(server.arg("url"), server.arg("user"), server.arg("pwd"));
+    server.sendHeader("Location", "/");
+    server.send(303, "text/plain", "");
+  });
   server.begin();
   g_serverRunning = true;
 }
