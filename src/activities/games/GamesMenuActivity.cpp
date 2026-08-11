@@ -9,13 +9,14 @@
 #include "activities/games/Game2048Activity.h"
 #include "activities/games/LightsOutActivity.h"
 #include "activities/games/MemoryMatchActivity.h"
+#include "activities/games/SnakeActivity.h"
 #include "activities/games/TicTacToeActivity.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
 namespace {
 // Games are appended here as each is ported. The label lambdas below read this.
-const char* const kGames[] = {"Tic-Tac-Toe", "2048", "Lights Out", "15 Puzzle", "Memory Match"};
+const char* const kGames[] = {"Tic-Tac-Toe", "2048", "Lights Out", "15 Puzzle", "Memory Match", "Snake"};
 constexpr int kGameCount = sizeof(kGames) / sizeof(kGames[0]);
 }  // namespace
 
@@ -46,6 +47,10 @@ void GamesMenuActivity::launch(int index) {
       break;
     case 4:
       startActivityForResult(std::make_unique<MemoryMatchActivity>(renderer, mappedInput),
+                             [](const ActivityResult&) {});
+      break;
+    case 5:
+      startActivityForResult(std::make_unique<SnakeActivity>(renderer, mappedInput),
                              [](const ActivityResult&) {});
       break;
     default:
