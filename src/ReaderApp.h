@@ -20,8 +20,9 @@ class ReaderApp : public App {
  private:
   enum class RMode { Reading, Menu, Fonts, Bookmarks };
 
-  String   path_, title_, key_;
+  String   path_, title_, key_, err_;
   bool     fromSd_ = false;
+  bool     epub_ = false;
   int      fmt_ = 0;  // 0 plain, 1 html, 2 rtf
   BookSource src_;
   uint32_t size_ = 0;

@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 
+#include "Epub.h"
 #include "ProgressStore.h"
 #include "ReaderSettings.h"
 #include "Stats.h"
@@ -16,7 +17,8 @@ ReaderApp::ReaderApp(const String& path, bool fromSd)
   title_ = (slash >= 0) ? path_.substring(slash + 1) : path_;
   key_ = (fromSd_ ? String("sd:") : String("")) + path_;
   String l = path_; l.toLowerCase();
-  if (l.endsWith(".html") || l.endsWith(".htm")) fmt_ = 1;
+  if (l.endsWith(".epub")) { epub_ = true; fmt_ = 0; }  // extracted to plain text
+  else if (l.endsWith(".html") || l.endsWith(".htm")) fmt_ = 1;
   else if (l.endsWith(".rtf")) fmt_ = 2;
   else fmt_ = 0;  // txt / md / xtc treated as plain
 }
@@ -24,7 +26,14 @@ ReaderApp::ReaderApp(const String& path, bool fromSd)
 ReaderApp::~ReaderApp() { flush(0); }
 
 void ReaderApp::onEnter() {
-  ok_ = fromSd_ ? src_.openSD(path_) : src_.openLittleFS(path_);
+  if (epub_) {
+    Epub::Result res = Epub::prepare(path_, fromSd_);
+    if (!res.ok) { ok_ = false; err_ = res.error; pageStartMs_ = millis(); return; }
+    if (res.title.length()) title_ = res.title;
+    ok_ = src_.openLittleFS(res.textPath);  // read the extracted plain text
+  } else {
+    ok_ = fromSd_ ? src_.openSD(path_) : src_.openLittleFS(path_);
+  }
   if (ok_) {
     size_ = src_.size();
     uint32_t saved = ProgressStore::load(key_);
@@ -265,8 +274,10 @@ void ReaderApp::renderReading(DuetDisplay& d) {
   duet::headerBar(g, title_, String(pct) + "%");
 
   if (!ok_) {
-    duet::centerText(g, SCREEN_W / 2, SCREEN_H / 2, FONT_MED,
-                     "Could not open file.", UI_BLACK);
+    duet::centerText(g, SCREEN_W / 2, SCREEN_H / 2 - 12, FONT_MED,
+                     "Could not open book.", UI_BLACK);
+    if (err_.length())
+      duet::centerText(g, SCREEN_W / 2, SCREEN_H / 2 + 16, FONT_BODY, err_, UI_BLACK);
     duet::buttonBar(g, "Back", "", "", "");
     return;
   }

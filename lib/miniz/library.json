@@ -1,0 +1,10 @@
+{
+  "name": "miniz",
+  "version": "3.1.2-vix",
+  "description": "Vendored miniz (tinfl streaming inflate only) with ROM-safe symbol renames, for EPUB/ZIP reading",
+  "license": "MIT",
+  "build": {
+    "srcDir": "src",
+    "includeDir": "src"
+  }
+}

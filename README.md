@@ -33,10 +33,22 @@ are Up / Down** (page turning in the reader, scrolling the carousel on Home).
 ## Reader & formats
 
 Paginated, word-wrapped reader from a **microSD card** (root or `/books` /
-`/images`) **or** internal flash. Rendered now: `.txt .md .xtc .html .rtf`
-(HTML/RTF tags stripped). Listed and routed to staged viewers: `.epub .pdf
-.mobi .cbz .cbr` and images `.jpg .jpeg .png .bmp .gif`. Reading position is
-saved per book.
+`/images`) **or** internal flash. Rendered now: `.txt .md .xtc .html .rtf` and
+**`.epub`** (EPUB 2/3). Still staged: `.pdf .mobi .cbz .cbr` and images.
+Reading position is saved per book.
+
+**EPUB** is unzipped on-device (vendored `miniz` inflate) — container.xml → OPF
+→ spine order — and each chapter is streamed through an XHTML tag-stripper into
+one cached plain-text file, which the normal paginator renders. Re-opening the
+same book is instant (cached).
+
+**Fonts & layout:** press **Select** in a book to open the menu → **Fonts &
+layout**: Sans/Serif family, four text sizes, three line-spacings, three margin
+widths — applied live and remembered.
+
+**Bookmarks:** the in-book menu adds/removes a bookmark at the current page and
+lists them to jump back; a corner mark shows on bookmarked pages. Bookmarks are
+stored as byte offsets, so they survive font/size changes.
 
 ## Wi-Fi, transfer & clock
 
@@ -86,7 +98,8 @@ Add books on a microSD (`.txt`/… in root or `/books`) or in `data/books/` +
 
 ```
 include/config.h       Portrait dims, pins, battery/net consts, button map, paths
-lib/                   Vendored MIT SDK: EInkDisplay, InputManager, SDCardManager
+lib/                   Vendored MIT SDK (EInkDisplay/InputManager/SDCardManager)
+                       + miniz (tinfl inflate, ROM-safe renames) for EPUB
 src/
   main.cpp             Entry + Net boot-connect + sleep screen + deep-sleep
   DuetDisplay.*        Rotated GFXcanvas1 -> e-ink
@@ -96,7 +109,9 @@ src/
   App.h AppManager.*   App framework (stack, tick, idle, sleep request)
   HomeApp.*            Carousel + section grid
   GamesApp.* <game>.*  Games folder + one App per game
-  FilesApp.* LibraryApp.* ReaderApp.* BookSource.* ProgressStore.* Stats.*
+  Epub.*               EPUB -> cached plain text (zip + inflate + tag strip)
+  ReaderApp.* ReaderSettings.* BookmarkStore.*  Reader, fonts/layout, bookmarks
+  FilesApp.* LibraryApp.* BookSource.* ProgressStore.* Stats.*
   WiFiApp.* WifiStore.* QrApp.* QrView.h  SettingsApp.*
 ```
 
@@ -111,6 +126,8 @@ src/
 
 ## Credits & license
 
-Hardware layer © Open X4 E-Paper Contributors (**MIT**), vendored under `lib/`;
-pin map/approach informed by CrossPoint. App code is the project owner's — add a
-top-level LICENSE before distributing.
+Hardware layer © Open X4 E-Paper Contributors (**MIT**), vendored under `lib/`.
+EPUB/bookmark/font approach and the `miniz` build (with its ROM-symbol renames)
+are adapted from **CrossPoint Reader** © Dave Allie (**MIT**); `miniz` © Rich
+Geldreich et al. (MIT/public domain). Pin map informed by CrossPoint/FreeInk.
+App code is the project owner's — add a top-level LICENSE before distributing.

@@ -70,8 +70,9 @@ void LibraryApp::openSelected() {
   const String& path = paths_[sel_];
   bool sd = fromSd_[sel_] != 0;
   int cls = classify(baseName(path));
-  if (cls == 0) {
-    nav->push(new ReaderApp(path, sd));
+  String low = baseName(path); low.toLowerCase();
+  if (cls == 0 || low.endsWith(".epub")) {
+    nav->push(new ReaderApp(path, sd));       // .epub extracts to text on open
   } else if (cls == 1) {
     nav->push(new PlaceholderApp("Format staged",
                                  baseName(path) + " - viewer coming soon"));
