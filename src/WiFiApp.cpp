@@ -2,23 +2,25 @@
 
 #include <WiFi.h>
 
+#include "Net.h"
 #include "QrView.h"
 #include "WifiStore.h"
 #include "theme.h"
 
 #define AP_NAME "Vix-Setup"
+#define MENU_ROWS 3
 
 static const char FORM_HTML[] PROGMEM =
     "<!doctype html><html><head><meta charset=UTF-8>"
     "<meta name=viewport content=\"width=device-width,initial-scale=1\">"
-    "<title>xteinkOS Wi-Fi</title><style>"
+    "<title>Vix OS Wi-Fi</title><style>"
     "body{font-family:'Segoe UI',sans-serif;background:#F5F5F0;color:#2C3E50;padding:16px}"
     ".c{max-width:420px;margin:auto;background:#fff;padding:22px;border-radius:8px;"
     "box-shadow:0 2px 8px rgba(0,0,0,.1)}label{font-weight:600;display:block;margin:12px 0 4px}"
     "input{width:100%;padding:11px;border:1px solid #BDC3C7;border-radius:4px;box-sizing:border-box}"
     "button{width:100%;margin-top:18px;padding:13px;background:#3498DB;color:#fff;border:0;"
     "border-radius:4px;font-weight:700;font-size:1rem}</style></head><body><div class=c>"
-    "<h2>&#128246; xteinkOS Wi-Fi</h2><p>Enter your home network.</p>"
+    "<h2>&#128246; Vix OS Wi-Fi</h2><p>Enter your home network.</p>"
     "<form action=\"/save\" method=\"get\">"
     "<label>Network name (SSID)</label><input name=\"ssid\" autocapitalize=off>"
     "<label>Password</label><input name=\"pwd\" type=\"password\">"
@@ -63,14 +65,15 @@ void WiFiApp::stopPortal() {
   WiFi.softAPdisconnect(true);
 }
 
-void WiFiApp::startConnect() {
-  String ssid, pass;
-  if (!WifiStore::load(ssid, pass)) { mode_ = Mode::Failed; return; }
-  WiFi.persistent(false);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid.c_str(), pass.c_str());
+void WiFiApp::beginConnect() {
+  Net::connectSaved();
   connectStart_ = millis();
   mode_ = Mode::Connecting;
+}
+
+void WiFiApp::enterTransfer() {
+  Net::startFileServer();
+  mode_ = Mode::Transfer;
 }
 
 bool WiFiApp::onTick() {
@@ -80,13 +83,13 @@ bool WiFiApp::onTick() {
     if (gotConfig_) {
       WifiStore::save(pendingSsid_, pendingPass_);
       stopPortal();
-      startConnect();
+      beginConnect();
       return true;
     }
     return false;
   }
   if (mode_ == Mode::Connecting) {
-    if (WiFi.status() == WL_CONNECTED) { mode_ = Mode::Connected; return true; }
+    if (Net::connected()) { mode_ = Mode::Connected; return true; }
     if (millis() - connectStart_ > 20000) { mode_ = Mode::Failed; return true; }
     return false;
   }
@@ -96,18 +99,28 @@ bool WiFiApp::onTick() {
 bool WiFiApp::onButton(Btn b) {
   if (mode_ == Mode::Menu) {
     switch (b) {
-      case Btn::Up:   sel_ = (sel_ + 1) % 2; return true;
-      case Btn::Down: sel_ = (sel_ + 1) % 2; return true;
+      case Btn::Up:   sel_ = (sel_ + MENU_ROWS - 1) % MENU_ROWS; return true;
+      case Btn::Down: sel_ = (sel_ + 1) % MENU_ROWS; return true;
       case Btn::Confirm:
-        if (sel_ == 0) { if (WifiStore::has()) startConnect(); }
-        else startPortal();
+        if (sel_ == 0) {                       // Connect / reconnect
+          if (Net::connected()) enterTransfer();
+          else if (WifiStore::has()) beginConnect();
+          else startPortal();
+        } else if (sel_ == 1) {                // Set up via phone
+          startPortal();
+        } else {                               // Transfer files
+          if (Net::connected()) enterTransfer();
+          else if (WifiStore::has()) beginConnect();
+          else startPortal();
+        }
         return true;
       default: return false;  // Back -> home
     }
   }
-  // Any of the active modes: Back/Confirm returns to the menu.
+  // Active modes: Back/Confirm/Power returns to the menu (and tidies up).
   if (b == Btn::Back || b == Btn::Confirm || b == Btn::Power) {
     if (mode_ == Mode::Portal) stopPortal();
+    if (mode_ == Mode::Transfer) Net::stopFileServer();
     mode_ = Mode::Menu;
     return true;
   }
@@ -116,22 +129,26 @@ bool WiFiApp::onButton(Btn b) {
 
 void WiFiApp::render(DuetDisplay& d) {
   auto& g = d.gfx();
-  duet::header(g, "Wi-Fi Setup");
+  duet::headerBar(g, "Wi-Fi", "");
 
   if (mode_ == Mode::Menu) {
     String ssid, pass;
     bool has = WifiStore::load(ssid, pass);
-    String status = (WiFi.status() == WL_CONNECTED)
-                        ? ("Connected: " + WiFi.localIP().toString())
+    String status = Net::connected()
+                        ? ("Connected: " + Net::ssid() + "  " + Net::ip())
                         : (has ? ("Saved: " + ssid) : "No network saved");
     duet::text(g, UI_MARGIN, UI_HEADER_H + 34, FONT_MED, status, UI_BLACK);
 
-    const int rowH = 66;
-    int y = UI_HEADER_H + 60;
+    const int rowH = 64;
+    int y = UI_HEADER_H + 58;
     duet::listRow(g, 0, y, SCREEN_W, rowH,
-                  has ? ("Connect to " + ssid) : "Connect (none saved)", sel_ == 0);
+                  Net::connected() ? "Transfer files (open page)"
+                                   : (has ? ("Connect to " + ssid)
+                                          : "Connect (none saved)"),
+                  sel_ == 0);
     duet::listRow(g, 0, y + rowH, SCREEN_W, rowH, "Set up via phone", sel_ == 1);
-    duet::footerHint(g, "Up/Down: select   Confirm: go   Back: home");
+    duet::listRow(g, 0, y + 2 * rowH, SCREEN_W, rowH, "Transfer files", sel_ == 2);
+    duet::buttonBar(g, "Back", "Select", "Up", "Down");
     return;
   }
 
@@ -155,11 +172,22 @@ void WiFiApp::render(DuetDisplay& d) {
   }
 
   if (mode_ == Mode::Connected) {
-    duet::centerText(g, SCREEN_W / 2, SCREEN_H / 2 - 10, FONT_LARGE, "Connected!",
+    duet::centerText(g, SCREEN_W / 2, UI_HEADER_H + 60, FONT_LARGE, "Connected!",
                      UI_BLACK);
-    duet::centerText(g, SCREEN_W / 2, SCREEN_H / 2 + 24, FONT_MED,
-                     "IP: " + WiFi.localIP().toString(), UI_BLACK);
-    duet::footerHint(g, "Back: menu");
+    duet::centerText(g, SCREEN_W / 2, UI_HEADER_H + 92, FONT_MED,
+                     Net::ssid(), UI_BLACK);
+    duet::footerHint(g, "Confirm: transfer files   Back: menu");
+    return;
+  }
+
+  if (mode_ == Mode::Transfer) {
+    duet::text(g, UI_MARGIN, UI_HEADER_H + 32, FONT_MED,
+               "On your phone (same Wi-Fi), open:", UI_BLACK);
+    duet::text(g, UI_MARGIN, UI_HEADER_H + 62, FONT_LARGE, Net::hostUrl(), UI_BLACK);
+    duet::text(g, UI_MARGIN, UI_HEADER_H + 88, FONT_BODY,
+               "or scan (opens " + Net::url() + ")", UI_BLACK);
+    qrview::draw(g, Net::url(), UI_HEADER_H + 106, 260);
+    duet::footerHint(g, "Upload books & images from the page   Back: stop");
     return;
   }
 

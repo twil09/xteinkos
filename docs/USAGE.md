@@ -5,20 +5,23 @@
 Two large paddles (four zones: **Back / Confirm / Left / Right**), two side
 buttons (**right = Up, left = Down**), and a **Power** button.
 
-| Screen | Up/Down/Left/Right | Confirm | Back | Power |
-|--------|--------------------|---------|------|-------|
-| Home | move / scroll | open | — | (idle → sleep) |
-| Most games | move cursor / play | place / new game | home | — |
-| Minesweeper | move | reveal | **flag** | exit |
-| Blackjack | Up=Hit / Down=Stand | Hit / new hand | home | — |
-| Snake | steer | restart (when over) | home | — |
-| Library | select | read | home | — |
-| Reader | prev / next page | — | library | — |
-| Wi-Fi / QR | navigate | act | back | — |
+Every screen shows a status bar: the Vix logo + title on the left, and the
+**clock, Wi-Fi signal, and battery %** on the right.
 
-Held Up/Down auto-repeats where it makes sense. The device deep-sleeps after
-~2 min idle (not during Wi-Fi setup); press **Power** to wake — the e-ink keeps
-its last image while asleep.
+| Screen | Left/Right | Up/Down (side) | Confirm | Back |
+|--------|-----------|----------------|---------|------|
+| Home | **step through sections** (Games→Books→Wi-Fi→Settings) | scroll the book carousel | open section | — |
+| Most games | move cursor / play | move cursor | place / new game | home |
+| Minesweeper | move | move | reveal (**Back = flag**) | exit |
+| Blackjack | — | Up=Hit / Down=Stand | Hit / new hand | home |
+| Snake | steer | steer | restart (when over) | home |
+| Library | select | select | read | home |
+| Reader | prev / next page | prev / next page | — | library |
+| Settings | (Time-zone row: −/+ hour) | move selection | act | home |
+| Wi-Fi / QR | navigate | navigate | act | back |
+
+The device deep-sleeps after ~2 min idle (not during Wi-Fi setup or file
+transfer); press **Power** to wake — the e-ink keeps its last image while asleep.
 
 ## Reading
 
@@ -29,11 +32,20 @@ Add books as `.txt` or `.md`:
 
 Open Library → pick a book → arrows turn pages. Your position is saved per book.
 
-## Wi-Fi & QR
+## Wi-Fi, file transfer & clock
 
-- **Wi-Fi Setup → Set up via phone:** the device makes an open `Vix-Setup`
-  network; join it (scan the on-screen QR), a page opens, enter your home Wi-Fi,
-  Save. The device stores it and connects. **Connect to saved** reconnects later.
+- **Set up via phone:** the device makes an open `Vix-Setup` network; join it
+  (scan the on-screen QR), a page opens, enter your home Wi-Fi, Save. The device
+  stores it and **auto-reconnects on every wake**.
+- **Transfer files:** once connected, **Wi-Fi → Transfer files** shows a URL
+  (`http://vix.local/`) and a QR (encoding the IP, so it works even where
+  `.local` doesn't). Open it on a phone on the **same network** to
+  upload/download/delete books and images — books go to the Library, images to
+  Images, sorted automatically by file type. Uploads land in internal flash
+  (~3.5 MB); use a microSD for a large library.
+- **Clock:** time is fetched over NTP when Wi-Fi connects. Set your offset in
+  **Settings → Time zone** (Left/Right changes the hour). The RTC keeps time
+  through sleep; a full power-off re-syncs on the next connect.
 - **QR Codes:** Left/Right cycles between the project link, a Wi-Fi-share code,
   and the device's address (when connected).
 

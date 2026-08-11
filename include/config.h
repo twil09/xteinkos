@@ -33,6 +33,15 @@
 #define PIN_POWER       3        // digital power button (active LOW), wake source
 #define IDLE_SLEEP_MS   120000   // deep-sleep after this long with no activity
 
+// ---- Battery (X3 board profile: ADC on GPIO0, 2.0x divider) ----------------
+#define BATTERY_ADC_PIN 0
+#define BATTERY_DIVIDER 2.0f
+
+// ---- Networking ------------------------------------------------------------
+#define MDNS_HOST   "vix"        // reach the device at http://vix.local
+#define FILE_PORT   80           // file-transfer / setup web server port
+#define TZ_PATH     "/tz"        // persisted UTC offset in minutes
+
 // ---- 1bpp canvas colors (GFXcanvas1 / EInkDisplay: 1 = white, 0 = black) ---
 static const uint16_t UI_WHITE = 1;  // background
 static const uint16_t UI_BLACK = 0;  // ink

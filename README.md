@@ -7,21 +7,28 @@ MIT-licensed [community-sdk](https://github.com/crosspoint-reader/community-sdk)
 hardware layer (the proven X3 `EInkDisplay` driver), so it runs natively on the
 device.
 
+Every screen carries a status bar: the **Vix logo**, the screen title, and — on
+the right — the **clock**, **Wi-Fi** signal, and **battery** level.
+
 ## Home
 
 A **book carousel** across the top (each cover shows the title, with a centred
-**tick** once you finish the book), over a **2×2 section grid**:
+**tick** once you finish the book), over four sections:
 
 - **Games** — folder of 12 offline games
-- **Files** — splits into **Books** and **Images**
-- **Wi-Fi** — status + connect / phone captive-portal setup
-- **Settings** — device info, reading stats, sleep, QR codes
+- **Books** — your library, splitting into **Books** and **Images**
+- **Wi-Fi** — status, connect, phone setup, and **file transfer**
+- **Settings** — device info, clock/time-zone, reading stats, sleep, QR codes
+
+Press **Left / Right** to step through the sections (Games → Books → Wi-Fi →
+Settings); the **side Up / Down** buttons scroll the book carousel; **Select**
+opens the highlighted section.
 
 ## Controls
 
 The X3's two bottom paddles give four zones — **Back / Select / Left / Right** —
 the primary controls, shown as an on-screen button bar. The two **side buttons
-are Up / Down** (page turning in the reader, and scrolling elsewhere).
+are Up / Down** (page turning in the reader, scrolling the carousel on Home).
 
 ## Reader & formats
 
@@ -31,12 +38,23 @@ Paginated, word-wrapped reader from a **microSD card** (root or `/books` /
 .mobi .cbz .cbr` and images `.jpg .jpeg .png .bmp .gif`. Reading position is
 saved per book.
 
+## Wi-Fi, transfer & clock
+
+Credentials are saved and the device **auto-reconnects** on every wake. Set up
+from a phone via an open **`Vix-Setup`** captive portal (scan the on-screen QR).
+Once on your home network, **Wi-Fi → Transfer files** starts a web page at
+**`http://vix.local/`** (a QR shows the IP for phones that can't resolve
+`.local`) where you can **upload/download/delete** books and images — books land
+in the Library, images in Images, sorted by file type. Time is set over **NTP**
+when connected (adjust your zone in **Settings → Time zone**); the RTC keeps it
+through naps.
+
 ## Reading stats
 
 Tracks total reading time and pages, a **reading-speed score (1–100)** (from
 average time per page), and per-book completion (the carousel tick). Shown in
 **Settings → Reading**. Sharing stats with another Vix OS device over Wi-Fi is
-the next step (a Share entry is present).
+the next step.
 
 ## Games (12)
 
@@ -67,12 +85,14 @@ Add books on a microSD (`.txt`/… in root or `/books`) or in `data/books/` +
 ## Layout
 
 ```
-include/config.h       Portrait dims, pins, colors, button map, paths
+include/config.h       Portrait dims, pins, battery/net consts, button map, paths
 lib/                   Vendored MIT SDK: EInkDisplay, InputManager, SDCardManager
 src/
-  main.cpp             Entry + sleep screen + deep-sleep
+  main.cpp             Entry + Net boot-connect + sleep screen + deep-sleep
   DuetDisplay.*        Rotated GFXcanvas1 -> e-ink
-  theme.h              Header bar, tiles, button bar, list rows
+  theme.h              Status bar (logo/clock/wifi/battery), tiles, rows
+  Battery.h Clock.*    LiPo gauge (GPIO0) + NTP wall-clock with UTC offset
+  Net.*                Wi-Fi auto-reconnect, mDNS, and file-transfer server
   App.h AppManager.*   App framework (stack, tick, idle, sleep request)
   HomeApp.*            Carousel + section grid
   GamesApp.* <game>.*  Games folder + one App per game
@@ -83,9 +103,9 @@ src/
 ## Status / notes
 
 - Compiles clean; built on the proven SDK display/input drivers (portrait via a
-  rotated canvas). ~19% flash, ~29% RAM.
-- **Hardware-tested:** boots on the X3 (previous landscape build confirmed).
-  This portrait build + new UI should be flashed and checked.
+  rotated canvas). ~20% flash, ~30% RAM.
+- **Hardware-tested:** boots and flashes on the X3; portrait orientation
+  confirmed. Battery gauge uses the X3 board profile (ADC GPIO0, ×2.0 divider).
 - **Staged:** EPUB/PDF/MOBI/CBZ/CBR rendering, JPEG/PNG decoding to e-ink, and
   live device-to-device stat sharing — recognised/entry-pointed now.
 

@@ -1,4 +1,4 @@
-// SettingsApp — device info, reading stats, and actions (sleep, share*).
+// SettingsApp — device info, clock/time-zone, reading stats, and actions.
 #pragma once
 #include "App.h"
 
@@ -11,5 +11,6 @@ class SettingsApp : public App {
   }
 
  private:
-  int sel_ = 0;  // 0 Sleep now, 1 Share stats, 2 QR codes
+  static const int kRows = 3;
+  int sel_ = 0;  // 0 Sleep now, 1 Time zone (Left/Right adjusts), 2 QR codes
 };

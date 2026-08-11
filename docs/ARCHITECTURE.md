@@ -43,12 +43,21 @@ Adding a feature = one `App` subclass + a `HomeApp` menu entry.
   computes the next page's byte offset), keying `ProgressStore` per source.
 - `LibraryApp` lists `.txt`/`.md` from SD (root + `/books`) and flash `/books`.
 
-## Wi-Fi & QR
+## Wi-Fi, transfer & clock
 
-- `WiFiApp` runs a soft-AP captive portal (`WebServer` + `DNSServer`, serviced
-  from `onTick`) to capture home credentials (`WifiStore` → `/wifi.json`), then
-  connects (STA). `QrView` renders a QR (ricmoo/QRCode) to the canvas;
+- `Net` owns the STA lifecycle: on boot it restores `WifiStore` creds and
+  connects with `setAutoReconnect(true)`, so the link returns after every wake.
+  `Net::poll()` (from the main loop) starts mDNS (`vix.local`) and kicks NTP the
+  moment the link comes up, and services the **file-transfer web server** — a
+  `WebServer` with upload/download/delete routes writing to LittleFS `/books`
+  and `/images` (routed by file type).
+- `WiFiApp` drives the UI: a soft-AP captive portal (`WebServer` + `DNSServer`)
+  to capture credentials, a connect flow, and a **Transfer** screen showing the
+  URL + a QR (encoding the IP for universal reach). `QrView` renders QR codes;
   `QrApp` cycles project / Wi-Fi-share / device-IP codes.
+- `Clock` keeps the RTC in UTC (NTP) and applies a persisted user offset when
+  formatting; `Battery` reads the X3 LiPo gauge (ADC GPIO0, ×2.0) via the
+  community-sdk polynomial. Both feed the `theme.h` status bar.
 
 ## Power
 

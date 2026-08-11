@@ -1,4 +1,5 @@
-// WiFiApp — connect to a saved network, or set one up from a phone (captive AP).
+// WiFiApp — connect to a saved network, set one up from a phone (captive AP),
+// or transfer files to/from a phone over the current Wi-Fi.
 #pragma once
 #include <DNSServer.h>
 #include <WebServer.h>
@@ -6,7 +7,7 @@
 
 class WiFiApp : public App {
  public:
-  enum class Mode { Menu, Portal, Connecting, Connected, Failed };
+  enum class Mode { Menu, Portal, Connecting, Connected, Failed, Transfer };
 
   void onEnter() override;
   bool onButton(Btn b) override;
@@ -32,6 +33,7 @@ class WiFiApp : public App {
 
   void startPortal();
   void stopPortal();
-  void startConnect();
+  void beginConnect();
+  void enterTransfer();
   void routes_();
 };

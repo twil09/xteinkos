@@ -12,12 +12,17 @@ automatically for each book.
 Adding your own books
 ---------------------
 
-Two ways:
+Three ways:
 
-1. microSD card: copy .txt or .md files onto a card (root folder or a /books
+1. Over Wi-Fi: connect the device (Wi-Fi > Set up via phone), then choose
+   Wi-Fi > Transfer files. On a phone on the same network, open the shown
+   address (http://vix.local/) or scan the QR, and upload your files. Books go
+   to the Library and images to Images automatically.
+
+2. microSD card: copy .txt or .md files onto a card (root folder or a /books
    folder) and insert it. They appear in the Library tagged [SD].
 
-2. Internal flash: put files in the firmware project's "data/books" folder and
+3. Internal flash: put files in the firmware project's "data/books" folder and
    run:  pio run -t uploadfs
 
 
@@ -25,7 +30,8 @@ About this OS
 -------------
 
 Vix OS is a small, Duet-styled operating system: a home launcher for a set of
-offline games, this book reader, plus Wi-Fi and QR tools. It runs on the
+offline games, this book reader, plus Wi-Fi file transfer and QR tools. Every
+screen shows the time, Wi-Fi signal and battery in the top bar. It runs on the
 community e-paper SDK's display and input drivers, native to the X3's 792x528
 e-ink screen.
 

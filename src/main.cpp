@@ -1,5 +1,5 @@
 // ============================================================================
-//  main.cpp — xteinkOS entry point
+//  main.cpp — Vix OS entry point
 //  Duet-styled home launcher over reader + games, on the MIT community-sdk.
 // ============================================================================
 #include <Arduino.h>
@@ -12,6 +12,7 @@
 #include "Buttons.h"
 #include "DuetDisplay.h"
 #include "HomeApp.h"
+#include "Net.h"
 #include "config.h"
 #include "theme.h"
 
@@ -59,12 +60,15 @@ void setup() {
   SPI.begin(EPD_SCLK, PIN_SD_MISO, EPD_MOSI, -1);
   if (!LittleFS.begin(true)) Serial.println("[fs] LittleFS mount failed");
 
+  Net::begin();  // restore Wi-Fi creds and reconnect (auto-reconnecting)
+
   manager = new AppManager(display, buttons);
   manager->push(new HomeApp());  // draws the launcher on first loop()
 }
 
 void loop() {
   manager->loop();
+  Net::poll();  // service the file server + NTP/mDNS when the link is up
   bool idle = manager->idleMs() > IDLE_SLEEP_MS && !manager->keepAwake();
   if (manager->consumeSleep() || idle) deepSleep();
   delay(15);  // pace button polling; e-ink only refreshes on change
