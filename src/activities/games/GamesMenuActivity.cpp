@@ -98,9 +98,22 @@ void GamesMenuActivity::render(RenderLock&&) {
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.homeTopPadding}, tr(STR_GAMES));
 
   const int top = metrics.headerHeight + metrics.homeTopPadding + metrics.homeMenuTopOffset;
+  const Rect menuRect{0, top, pageWidth, pageHeight - top - metrics.buttonHintsHeight};
+
+  // Window the list so the selected row stays visible (drawButtonMenu itself
+  // neither scrolls nor clips).
+  const int rowStep = metrics.menuRowHeight + metrics.menuSpacing;
+  int visibleRows = (menuRect.height - metrics.verticalSpacing) / rowStep;
+  if (visibleRows < 1) visibleRows = 1;
+  if (selectorIndex < scrollTop) scrollTop = selectorIndex;
+  if (selectorIndex >= scrollTop + visibleRows) scrollTop = selectorIndex - visibleRows + 1;
+  if (scrollTop < 0) scrollTop = 0;
+  int windowCount = gameCount() - scrollTop;
+  if (windowCount > visibleRows) windowCount = visibleRows;
+
   GUI.drawButtonMenu(
-      renderer, Rect{0, top, pageWidth, pageHeight - top - metrics.buttonHintsHeight}, gameCount(), selectorIndex,
-      [](int i) { return std::string(kGames[i]); }, [](int) { return Book; });
+      renderer, menuRect, windowCount, selectorIndex - scrollTop,
+      [this](int i) { return std::string(kGames[scrollTop + i]); }, [](int) { return Book; });
 
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);

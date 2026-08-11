@@ -20,6 +20,7 @@
 #include "activities/games/GamesMenuActivity.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
+#include "images/VixMark.h"
 
 int HomeActivity::getMenuItemCount() const {
   int count = 5;  // File Browser, Recents, File transfer, Settings, Games
@@ -345,6 +346,15 @@ void HomeActivity::render(RenderLock&&) {
     const std::string label = renderer.truncatedText(fontId, menuItems[i], tileW - 20, EpdFontFamily::BOLD);
     const int tw = renderer.getTextWidth(fontId, label.c_str(), EpdFontFamily::BOLD);
     renderer.drawText(fontId, x + (tileW - tw) / 2, y + tileH / 2 + 7, label.c_str(), !sel, EpdFontFamily::BOLD);
+  }
+
+  // Fill the leftover bottom-right slot (odd tile count) with the Vix "V" mark.
+  if (count % cols != 0) {
+    const int r = count / cols, c = count % cols;
+    const int x = sideMargin + c * (tileW + gap);
+    const int y = gridTop + r * (tileH + gap);
+    const int s = (tileW < tileH ? tileW : tileH) * 55 / 100;
+    drawVixMark(renderer, x + (tileW - s) / 2, y + (tileH - s) / 2, s);
   }
 
   const auto labels = mappedInput.mapLabels(recentBooks.empty() ? "" : tr(STR_RESUME), tr(STR_SELECT), tr(STR_DIR_UP),

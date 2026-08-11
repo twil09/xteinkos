@@ -12,6 +12,7 @@ class GamesMenuActivity : public Activity {
 
  private:
   int selectorIndex = 0;
+  int scrollTop = 0;   // first visible row (list scrolls to keep selection in view)
   int gameCount() const;
   void launch(int index);
 };
