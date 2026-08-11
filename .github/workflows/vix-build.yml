@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # needed to publish the firmware as a Release asset
 
 jobs:
   build:
@@ -44,12 +44,31 @@ jobs:
       - name: Build firmware (X3/X4)
         run: pio run -e default
 
+      - name: Stage firmware for download
+        run: |
+          mkdir -p out
+          cp .pio/build/default/firmware.bin   out/vixos-x3-firmware.bin
+          cp .pio/build/default/bootloader.bin out/vixos-x3-bootloader.bin
+          cp .pio/build/default/partitions.bin out/vixos-x3-partitions.bin
+          ls -la out
+
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: vixos-x3-firmware
-          path: |
-            .pio/build/default/firmware.bin
-            .pio/build/default/bootloader.bin
-            .pio/build/default/partitions.bin
+          path: out/*
           if-no-files-found: error
+
+      # Publish the flashable image to the repo's Releases page so it's a
+      # one-click download (rolling "latest" release, updated each build).
+      - name: Publish firmware Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: vixos-crosspoint-latest
+          name: "Vix OS (CrossPoint base) — latest build"
+          body: |
+            Latest CI build of the CrossPoint-based Vix OS for the Xteink X3/X4.
+            Flash `vixos-x3-firmware.bin` via the CrossPoint web flasher → "Custom .bin".
+            Commit: ${{ github.sha }}
+          prerelease: true
+          files: out/*
