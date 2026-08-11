@@ -11,6 +11,10 @@
 #include <Fonts/FreeSerif18pt7b.h>
 #include <Fonts/FreeSerif24pt7b.h>
 #include <Fonts/FreeSerif9pt7b.h>
+#include <Fonts/FreeMono12pt7b.h>
+#include <Fonts/FreeMono18pt7b.h>
+#include <Fonts/FreeMono24pt7b.h>
+#include <Fonts/FreeMono9pt7b.h>
 
 #define READER_CFG "/reader.json"
 
@@ -25,13 +29,15 @@ const GFXfont* kSans[4] = {&FreeSans9pt7b, &FreeSans12pt7b, &FreeSans18pt7b,
                            &FreeSans24pt7b};
 const GFXfont* kSerif[4] = {&FreeSerif9pt7b, &FreeSerif12pt7b, &FreeSerif18pt7b,
                             &FreeSerif24pt7b};
+const GFXfont* kMono[4] = {&FreeMono9pt7b, &FreeMono12pt7b, &FreeMono18pt7b,
+                           &FreeMono24pt7b};
 // Base line height per size (px); scaled by spacing.
 const int kBase[4] = {24, 30, 42, 56};
 const float kSpace[3] = {0.86f, 1.0f, 1.18f};
 const int kMargins[3] = {14, 22, 36};
 
 void clampAll() {
-  g_family = (g_family % 2 + 2) % 2;
+  g_family = (g_family % 3 + 3) % 3;
   if (g_size < 0) g_size = 0; if (g_size > 3) g_size = 3;
   if (g_spacing < 0) g_spacing = 0; if (g_spacing > 2) g_spacing = 2;
   if (g_margin < 0) g_margin = 0; if (g_margin > 2) g_margin = 2;
@@ -66,13 +72,20 @@ void save() {
   if (f) { serializeJson(doc, f); f.close(); }
 }
 
-const GFXfont* font() { load(); return (g_family ? kSerif : kSans)[g_size]; }
+const GFXfont* font() {
+  load();
+  const GFXfont* const* fam = g_family == 1 ? kSerif : g_family == 2 ? kMono : kSans;
+  return fam[g_size];
+}
 int lineHeight() { load(); return (int)(kBase[g_size] * kSpace[g_spacing]); }
 int margin() { load(); return kMargins[g_margin]; }
 
 int family() { load(); return g_family; }
 void setFamily(int v) { load(); g_family = v; clampAll(); save(); }
-const char* familyName() { load(); return g_family ? "Serif" : "Sans"; }
+const char* familyName() {
+  load();
+  return g_family == 1 ? "Serif" : g_family == 2 ? "Mono" : "Sans";
+}
 
 int sizeIdx() { load(); return g_size; }
 void setSizeIdx(int v) { load(); g_size = v; clampAll(); save(); }
