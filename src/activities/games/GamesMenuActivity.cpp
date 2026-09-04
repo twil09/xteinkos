@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "HalDisplay.h"
+#include "activities/games/BlackjackActivity.h"
 #include "activities/games/ConnectFourActivity.h"
 #include "activities/games/FifteenPuzzleActivity.h"
 #include "activities/games/Game2048Activity.h"
@@ -21,9 +22,9 @@
 
 namespace {
 // Games are appended here as each is ported. The label lambdas below read this.
-const char* const kGames[] = {"Tic-Tac-Toe", "2048",        "Lights Out",   "15 Puzzle", "Memory Match",
-                              "Snake",       "Hangman",     "Minesweeper",  "Connect Four", "Reversi",
-                              "Sudoku"};
+const char* const kGames[] = {"Tic-Tac-Toe", "2048",        "Lights Out",  "15 Puzzle",    "Memory Match",
+                              "Snake",       "Hangman",     "Minesweeper", "Connect Four", "Reversi",
+                              "Sudoku",      "Blackjack"};
 constexpr int kGameCount = sizeof(kGames) / sizeof(kGames[0]);
 }  // namespace
 
@@ -78,6 +79,10 @@ void GamesMenuActivity::launch(int index) {
       break;
     case 10:
       startActivityForResult(std::make_unique<SudokuActivity>(renderer, mappedInput),
+                             [](const ActivityResult&) {});
+      break;
+    case 11:
+      startActivityForResult(std::make_unique<BlackjackActivity>(renderer, mappedInput),
                              [](const ActivityResult&) {});
       break;
     default:
